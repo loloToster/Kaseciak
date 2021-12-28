@@ -94,6 +94,8 @@ module.exports = {
                 let num = args[0]
                 num = parseInt(num)
                 if (typeof num == "number" && num > 1) {
+                    if (num > queue.tracks.length)
+                        num = queue.tracks.length
                     queue.skipTo(num - 1)
                     await msg.channel.send(`Skipuje **${num}** piosenek`)
                     return
@@ -101,7 +103,6 @@ module.exports = {
             }
 
             const success = queue.skip()
-            queue.setPaused(false)
 
             await msg.channel.send(
                 success ?
@@ -160,6 +161,7 @@ module.exports = {
         }
     },
     clear: {
+        aliases: ["c"],
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -173,6 +175,67 @@ module.exports = {
             queue.clear()
 
             await msg.channel.send("Kolejka wyczyszczona 🗑️")
+        }
+    },
+    now: {
+        aliases: ["np"],
+        /**
+        * @param {Message} msg 
+        * @param {String[]} args 
+        * @param {Client} client
+        */
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            if (!queue.current)
+                return await msg.channel.send("Nic nie jest odtwarzane")
+
+            const track = queue.current
+
+            const timestamps = queue.getPlayerTimestamp()
+
+            await msg.channel.send({
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle(`**${track.title}**`)
+                        .setURL(track.url)
+                        .setThumbnail(track.thumbnail)
+                        .setDescription(track.author)
+                        .addField(
+                            "\u2800",
+                            `${timestamps.current}┃${queue.createProgressBar({ length: 15 })}┃${timestamps.end}`,
+                            true
+                        )
+                ]
+            })
+        }
+    },
+    queue: {
+        aliases: ["q"],
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            await msg.channel.send(queue.toString())
+        }
+    },
+    shuffle: {
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            queue.shuffle()
+
+            await msg.channel.send("Zshufflowałem piosenki 🔀")
         }
     }
 }
