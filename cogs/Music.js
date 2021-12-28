@@ -90,7 +90,18 @@ module.exports = {
             if (!queue || !queue.playing)
                 return msg.channel.send(`Nie ma czego skipnąć`)
 
+            if (args[0]) {
+                let num = args[0]
+                num = parseInt(num)
+                if (typeof num == "number" && num > 1) {
+                    queue.skipTo(num - 1)
+                    await msg.channel.send(`Skipuje **${num}** piosenek`)
+                    return
+                }
+            }
+
             const success = queue.skip()
+            queue.setPaused(false)
 
             await msg.channel.send(
                 success ?
@@ -111,12 +122,41 @@ module.exports = {
             const player = client.player
             const queue = player.getQueue(msg.guild.id)
 
-            if (!queue || !queue.previousTracks[1])
-                return msg.channel.send(`Nie ma czego cofnąć`)
-
             await queue.back()
 
             await msg.channel.send("Cofam")
+        }
+    },
+    pause: {
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            queue.setPaused(true)
+
+            await msg.channel.send("Pauzuję")
+        }
+    },
+    resume: {
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            queue.setPaused(false)
+
+            await msg.channel.send("Wznawiam")
         }
     },
     clear: {
