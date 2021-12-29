@@ -23,29 +23,41 @@ client.once("ready", () => {
 client.cogs = []
 client.player = new Player(client)
 
+// load cogs
 readdirSync("./cogs").forEach(dir => {
     if (!dir.endsWith(".js")) return
-    let cog = require("./cogs/" + dir.slice(0, -3))
+    let cogName = dir.slice(0, -3)
+    let cog = require("./cogs/" + cogName)
+    cog.cog_name = cogName
     client.cogs.push(cog)
 })
 
-async function executeCommand(msg, cmdName, args) {
-    for (const cog in client.cogs) {
-        for (const cmd in client.cogs[cog]) {
-            let aliases = client.cogs[cog][cmd].aliases || []
-            if (cmdName == cmd || aliases.includes(cmdName)) {
-                let func = client.cogs[cog][cmd].execute
+client.getCommand = function (name) {
+    for (const cog in this.cogs) {
+        for (const cmd in this.cogs[cog]) {
+            let aliases = this.cogs[cog][cmd].aliases || []
+            if (name == cmd || aliases.includes(name)) {
+                let func = this.cogs[cog][cmd].execute
                 if (typeof func != "function") continue
-                try {
-                    await func(msg, args, client)
-                } catch (err) {
-                    console.error(err)
-                }
-                return true
+                let result = this.cogs[cog][cmd]
+                result.name = cmd
+                result.cog = this.cogs[cog].cog_name
+                return result
             }
         }
     }
     return false
+}
+
+client.executeCommand = async function (msg, cmdName, args) {
+    const cmd = this.getCommand(cmdName)
+    if (!cmd) return false
+    try {
+        await cmd.execute(msg, args, this)
+    } catch (err) {
+        console.error(err)
+    }
+    return true
 }
 
 client.on("messageCreate", async msg => {
@@ -57,7 +69,7 @@ client.on("messageCreate", async msg => {
     let args = content.split(/ +/g)
     let command = args.shift()
 
-    let result = await executeCommand(msg, command, args)
+    let result = await client.executeCommand(msg, command, args)
     if (!result) msg.channel.send(`Nie znam komendy ${command}`)
 })
 
