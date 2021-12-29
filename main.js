@@ -1,3 +1,5 @@
+process.title = "KaseciakNode"
+
 require("dotenv").config()
 const { Client, Intents } = require("discord.js")
 const { Player } = require("discord-player")
