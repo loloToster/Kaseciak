@@ -3,6 +3,9 @@ process.title = "KaseciakNode"
 require("dotenv").config()
 const { Client, Intents } = require("discord.js")
 const { Player } = require("discord-player")
+const { readFile } = require("fs/promises")
+
+const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
 
 const client = new Client({
     intents: [
@@ -27,9 +30,11 @@ client.loadCogsFromDir("./cogs")
 
 client.on("messageCreate", async msg => {
     let content = msg.content
-    if (!content.startsWith(client.prefix)) return
+    const prefix = (await readJSON("./prefixes.json"))[msg.guildId] || client.prefix
 
-    content = content.substring(client.prefix.length)
+    if (!content.startsWith(prefix)) return
+
+    content = content.substring(prefix.length)
 
     // exit command for bot's owner
     if (content == "exit" && msg.author.id == process.env.OWNER)

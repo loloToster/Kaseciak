@@ -1,4 +1,12 @@
 const { Client, Message, MessageEmbed } = require("discord.js")
+const { existsSync } = require("fs")
+const { readFile, writeFile } = require("fs/promises")
+
+const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
+const writeJSON = async (p, obj) => await writeFile(p, JSON.stringify(obj))
+
+if (!existsSync("./prefixes.json"))
+    writeJSON("./prefixes.json", {})
 
 module.exports = {
     ping: {
@@ -10,6 +18,31 @@ module.exports = {
          */
         async execute(msg, args, client) {
             await msg.channel.send(`Pong! \`${msg.createdTimestamp - Date.now()}ms\``)
+        }
+    },
+    prefix: {
+        description: "Zmienia prefix",
+        usage: "prefix {nowy prefix}",
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            let data = await readJSON("./prefixes.json")
+
+            if (!args[0]) {
+                let currentPrefix = data[msg.guildId] || client.prefix
+                return await msg.channel.send(`Aktualny prefix to: \`${currentPrefix}\``)
+            }
+
+            let newPrefix = args[0]
+            if (newPrefix.length > 10)
+                return await msg.channel.send("Prefix nie może mieć więcej niż 10 znaków")
+
+            data[msg.guildId] = newPrefix
+            await writeJSON("./prefixes.json", data)
+            await msg.channel.send(`Nowy prefix to: \`${newPrefix}\``)
         }
     },
     help: {
