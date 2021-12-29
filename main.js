@@ -1,13 +1,15 @@
 process.title = "KaseciakNode"
 
 require("dotenv").config()
-const { Client, Intents } = require("discord.js")
+const { Intents } = require("discord.js")
 const { Player } = require("discord-player")
 const { readFile } = require("fs/promises")
 
+const Bot = require("./Bot")
+
 const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
 
-const client = new Client({
+const bot = new Bot({
     intents: [
         Intents.FLAGS.GUILDS,
         Intents.FLAGS.GUILD_MEMBERS,
@@ -16,21 +18,19 @@ const client = new Client({
     ]
 })
 
-client.prefix = ">"
+bot.prefix = ">"
 
-require("./CogsModule")(client)
-
-client.once("ready", () => {
+bot.once("ready", () => {
     console.log("Ready!")
 })
 
-client.player = new Player(client)
+bot.player = new Player(bot)
 
-client.loadCogsFromDir("./cogs")
+bot.loadCogsFromDir("./cogs")
 
-client.on("messageCreate", async msg => {
+bot.on("messageCreate", async msg => {
     let content = msg.content
-    const prefix = (await readJSON("./prefixes.json"))[msg.guildId] || client.prefix
+    const prefix = (await readJSON("./prefixes.json"))[msg.guildId] || bot.prefix
 
     if (!content.startsWith(prefix)) return
 
@@ -43,8 +43,8 @@ client.on("messageCreate", async msg => {
     let args = content.split(/ +/g)
     let command = args.shift()
 
-    let result = await client.executeCommand(msg, command, args)
+    let result = await bot.executeCommand(msg, command, args)
     if (!result) await msg.channel.send(`Nie znam komendy ${command}`)
 })
 
-client.login(process.env.TOKEN)
+bot.login(process.env.TOKEN)

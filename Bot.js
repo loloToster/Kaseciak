@@ -1,14 +1,13 @@
 const { Client } = require("discord.js")
 const { readdirSync } = require("fs")
 
-/**
- * @param {Client} client 
- */
-module.exports = client => {
+class Bot extends Client {
+    constructor() {
+        super(...arguments)
+        this.cogs = {}
+    }
 
-    client.cogs = {}
-
-    client.loadCogsFromDir = function (dir) {
+    loadCogsFromDir(dir) {
         readdirSync(dir).forEach(file => {
             if (!file.endsWith(".js")) return
             let cogName = file.slice(0, -3)
@@ -29,7 +28,7 @@ module.exports = client => {
         })
     }
 
-    client.getCommand = function (name) {
+    getCommand(name) {
         for (const cog in this.cogs) {
             for (const cmd of this.cogs[cog].commands) {
                 if (name == cmd.name || cmd.aliases.includes(name)) {
@@ -40,7 +39,7 @@ module.exports = client => {
         return false
     }
 
-    client.executeCommand = async function (msg, cmdName, args) {
+    async executeCommand(msg, cmdName, args) {
         const cmd = this.getCommand(cmdName)
         if (!cmd) return false
         try {
@@ -51,3 +50,5 @@ module.exports = client => {
         return true
     }
 }
+
+module.exports = Bot
