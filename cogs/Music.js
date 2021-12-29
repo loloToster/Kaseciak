@@ -167,6 +167,32 @@ module.exports = {
             await msg.channel.send("Wznawiam")
         }
     },
+    seek: {
+        description: "przewija piosenkę do konkretnego momentu",
+        usage: "seek {sekundy}",
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            let secs = parseInt(args[0])
+
+            if (typeof secs != "number")
+                return await msg.channel.send("Podaj sekundy")
+
+            let secsInMs = secs * 1000
+
+            if (await queue.seek(secsInMs))
+                await msg.channel.send(`Przewijam do ${secs} sekund`)
+            else
+                await msg.channel.send("Nie zdołałem przewinąć")
+        }
+    },
     clear: {
         aliases: ["c"],
         description: "Czyści kolejkę",

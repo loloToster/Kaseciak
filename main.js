@@ -31,6 +31,10 @@ client.on("messageCreate", async msg => {
 
     content = content.substring(client.prefix.length)
 
+    // exit command for bot's owner
+    if (content == "exit" && msg.author.id == process.env.OWNER)
+        process.exit(0)
+
     let args = content.split(/ +/g)
     let command = args.shift()
 
