@@ -19,10 +19,7 @@ client.once("ready", () => {
 })
 
 client.cogs = []
-client.player = new Player(client/* , {
-    quality: 'highestaudio',
-    highWaterMark: 1 << 25
-} */)
+client.player = new Player(client)
 
 readdirSync("./cogs").forEach(dir => {
     if (!dir.endsWith(".js")) return
@@ -37,7 +34,11 @@ async function executeCommand(msg, cmdName, args) {
             if (cmdName == cmd || aliases.includes(cmdName)) {
                 let func = client.cogs[cog][cmd].execute
                 if (typeof func != "function") continue
-                await func(msg, args, client)
+                try {
+                    await func(msg, args, client)
+                } catch (err) {
+                    console.error(err)
+                }
                 return true
             }
         }
