@@ -4,8 +4,6 @@ require("dotenv").config()
 const { Client, Intents } = require("discord.js")
 const { Player } = require("discord-player")
 
-const prefix = ">"
-
 const client = new Client({
     intents: [
         Intents.FLAGS.GUILDS,
@@ -14,6 +12,8 @@ const client = new Client({
         Intents.FLAGS.GUILD_VOICE_STATES
     ]
 })
+
+client.prefix = ">"
 
 require("./CogsModule")(client)
 
@@ -27,15 +27,15 @@ client.loadCogsFromDir("./cogs")
 
 client.on("messageCreate", async msg => {
     let content = msg.content
-    if (!content.startsWith(prefix)) return
+    if (!content.startsWith(client.prefix)) return
 
-    content = content.substring(prefix.length)
+    content = content.substring(client.prefix.length)
 
     let args = content.split(/ +/g)
     let command = args.shift()
 
     let result = await client.executeCommand(msg, command, args)
-    if (!result) msg.channel.send(`Nie znam komendy ${command}`)
+    if (!result) await msg.channel.send(`Nie znam komendy ${command}`)
 })
 
 client.login(process.env.TOKEN)

@@ -7,7 +7,6 @@ const { readdirSync } = require("fs")
 module.exports = client => {
 
     client.cogs = {}
-    client.commands = []
 
     client.loadCogsFromDir = function (dir) {
         readdirSync(dir).forEach(file => {
@@ -21,11 +20,12 @@ module.exports = client => {
                 cmd.name = cmdName
                 cmd.cog = cogName
                 cmd.aliases = cmd.aliases || []
+                cmd.description = cmd.description || null
+                cmd.usage = cmd.usage || null
                 commands.push(cmd)
             }
             this.cogs[cogName] = {}
             this.cogs[cogName].commands = commands
-            this.commands = this.commands.concat(commands)
         })
     }
 

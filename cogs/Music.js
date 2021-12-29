@@ -15,6 +15,8 @@ async function joinVC(msg, queue) {
 module.exports = {
     play: {
         aliases: ["p"],
+        description: "Odtwarza lub dodaje do kolejki podaną piosenkę",
+        usage: "play {piosenka}",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -77,6 +79,8 @@ module.exports = {
     },
     skip: {
         aliases: ["s"],
+        description: "Skipuje obecną lub kilka piosenek",
+        usage: "skip {ilość:opcjonalne}",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -113,6 +117,7 @@ module.exports = {
     },
     back: {
         aliases: ["prev", "previous"],
+        description: "Cofa do poprzedniej piosenki",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -129,6 +134,7 @@ module.exports = {
         }
     },
     pause: {
+        description: "Pauzuje piosenkę",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -145,6 +151,7 @@ module.exports = {
         }
     },
     resume: {
+        description: "Kontunuuje odtwarzanie piosenki",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -162,6 +169,7 @@ module.exports = {
     },
     clear: {
         aliases: ["c"],
+        description: "Czyści kolejkę",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -179,6 +187,7 @@ module.exports = {
     },
     now: {
         aliases: ["np"],
+        description: "Wyświetla obecnie odtwarzaną piosenkę",
         /**
         * @param {Message} msg 
         * @param {String[]} args 
@@ -214,6 +223,7 @@ module.exports = {
     },
     queue: {
         aliases: ["q"],
+        description: "Wyświetla kolejkę",
         async execute(msg, args, client) {
             /**@type {Player} */
             const player = client.player
@@ -223,6 +233,7 @@ module.exports = {
         }
     },
     shuffle: {
+        description: "Tasuje kolejkę",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
