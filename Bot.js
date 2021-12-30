@@ -1,10 +1,29 @@
-const { Client } = require("discord.js")
+const { Client, ClientOptions } = require("discord.js")
 const { readdirSync } = require("fs")
 
 class Bot extends Client {
-    constructor() {
-        super(...arguments)
+
+    /** @param {ClientOptions} options */
+    constructor(options) {
+        super(options)
         this.cogs = {}
+        this.prefix = options.prefix
+        this.on("messageCreate", async msg => {
+            let content = msg.content
+
+            const prefix = typeof this.prefix == "function" ?
+                await this.prefix(this, msg) : this.prefix
+
+            if (!content.startsWith(prefix)) return
+
+            content = content.substring(prefix.length)
+
+            let args = content.split(/ +/g)
+            let command = args.shift()
+
+            let result = await this.executeCommand(msg, command, args)
+            if (!result) this.emit("commandNotFound", msg, command, args)
+        })
     }
 
     loadCogsFromDir(dir) {

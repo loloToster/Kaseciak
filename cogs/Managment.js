@@ -88,7 +88,11 @@ module.exports = {
                 }
                 emb.addField(`**${cog}:**`, text, false)
             }
-            emb.setFooter(client.prefix + "help {nazwa komendy}")
+
+            const prefix = typeof client.prefix == "function" ?
+                await client.prefix(client, msg) : client.prefix
+
+            emb.setFooter(prefix + "help {nazwa komendy}")
 
             await msg.channel.send({
                 embeds: [emb]
