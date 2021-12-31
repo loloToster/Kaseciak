@@ -184,7 +184,6 @@ class MediaController {
             try {
                 await mc._currentMsg.delete()
             } catch (e) {
-                console.error(e)
                 iter++
                 if (iter >= DELETE_LOOPS)
                     return
