@@ -52,7 +52,7 @@ class Bot extends Client {
 
     /**
      * @param {String} name 
-     * @returns {Object}
+     * @returns {Object|Boolean} command
      */
     getCommand(name) {
         for (const cog in this.cogs) {
@@ -69,7 +69,7 @@ class Bot extends Client {
      * @param {Message} msg 
      * @param {String} cmdName 
      * @param {String[]} args 
-     * @returns 
+     * @returns {Boolean} command found
      */
     async executeCommand(msg, cmdName, args) {
         const cmd = this.getCommand(cmdName)
@@ -77,7 +77,7 @@ class Bot extends Client {
         try {
             await cmd.execute(msg, args, this)
         } catch (err) {
-            console.error(err)
+            this.emit("commandError", msg, err)
         }
         return true
     }

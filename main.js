@@ -40,6 +40,10 @@ bot.on("commandNotFound", async (msg, command, args) => {
     await msg.channel.send(`Nie znam komendy ${command}`)
 })
 
+bot.on("commandError", async (msg, err) => {
+    console.error(err)
+})
+
 const player = new Player(bot)
 
 /**
