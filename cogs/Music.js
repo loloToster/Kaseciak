@@ -1,6 +1,7 @@
 const { Message, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
 const { Player, Queue } = require("discord-player")
 const Bot = require("../modules/Bot")
+const MediaController = require("../modules/MediaController")
 
 /**
  * @param {Message} msg 
@@ -33,45 +34,7 @@ module.exports = {
 
             if (!queue) return
             queue.destroy(true)
-        })
-
-        bot.on("interactionCreate", async i => {
-            if (!i.isButton()) return
-            /**@type {Player} */
-            const player = bot.player
-            const queue = player.getQueue(i.guildId)
-
-            if (!queue) return
-
-            console.log("interaction:", i.customId)
-            switch (i.customId) {
-                case "shuffle":
-                    queue.shuffle()
-                    break
-
-                case "prev":
-                    try {
-                        queue.back()
-                    } catch { }
-                    break
-
-                case "pause-play":
-                    queue.setPaused(!queue.connection.paused)
-                    break
-
-                case "next":
-                    queue.skip()
-                    break
-
-                case "loop":
-
-                    break
-
-                default:
-                    break
-            }
-
-            await i.deferUpdate()
+            if (queue.metadata.mc) await queue.metadata.mc.delete()
         })
     },
     play: {
@@ -288,7 +251,7 @@ module.exports = {
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
-            if (!queue.current)
+            if (!queue?.current)
                 return await msg.channel.send("Nic nie jest odtwarzane")
 
             const track = queue.current
@@ -357,6 +320,7 @@ module.exports = {
             const queue = player.getQueue(msg.guild.id)
 
             queue.destroy(true)
+            if (queue.metadata.mc) await queue.metadata.mc.delete()
 
             await msg.channel.send("Zatrzymuje i kasuje kolejke")
         }
@@ -368,34 +332,15 @@ module.exports = {
          * @param {Bot} bot
          */
         async execute(msg, args, bot) {
-            await msg.channel.send({
-                content: "abc",
-                components: [
-                    new MessageActionRow()
-                        .addComponents([
-                            new MessageButton()
-                                .setCustomId("shuffle")
-                                .setEmoji("🔀")
-                                .setStyle("SECONDARY"),
-                            new MessageButton()
-                                .setCustomId("prev")
-                                .setEmoji("⏪")
-                                .setStyle("SECONDARY"),
-                            new MessageButton()
-                                .setCustomId("pause-play")
-                                .setEmoji("⏯️")
-                                .setStyle("SECONDARY"),
-                            new MessageButton()
-                                .setCustomId("next")
-                                .setEmoji("⏩")
-                                .setStyle("SECONDARY"),
-                            new MessageButton()
-                                .setCustomId("loop")
-                                .setEmoji("🔁")
-                                .setStyle("SECONDARY")
-                        ])
-                ]
-            })
+            /**@type {Player} */
+            const player = bot.player
+            const queue = player.getQueue(msg.guild.id)
+
+            if (!queue)
+                return await msg.channel.send("kolejka nie istnieje")
+
+            if (queue.metadata.mc) await queue.metadata.mc.delete()
+            queue.metadata.mc = await new MediaController(msg.channel, player, true).create()
         }
     }
 }
