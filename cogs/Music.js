@@ -326,6 +326,7 @@ module.exports = {
         }
     },
     player: {
+        description: "Wysyła lub usuwa wiadomość będącą cały czas na dole kanału którą można obsługiwać podstawowe funkcje odtwarzania:\n🔀 odpowiednik komendy shuffle\n⏪ odpowiednik komendy back\n ⏯️ pauzuje lub wznawia odtwarzanie\n ⏩ odpowiednik komendy skip\n 🔄 odświeża informacje",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -339,8 +340,11 @@ module.exports = {
             if (!queue)
                 return await msg.channel.send("kolejka nie istnieje")
 
-            if (queue.metadata.mc) await queue.metadata.mc.delete()
-            queue.metadata.mc = await new MediaController(msg.channel, player, true).create()
+            if (queue.metadata.mc) {
+                await queue.metadata.mc.delete()
+                queue.metadata.mc = undefined
+            } else
+                queue.metadata.mc = await new MediaController(msg.channel, player, 5000, true).create()
         }
     }
 }

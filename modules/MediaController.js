@@ -7,12 +7,15 @@ class MediaController {
     /**
      * @param {TextChannel} channel 
      * @param {Player} player
+     * @param {Number} refreshInterval
+     * @param {Boolean} autoresend
      */
-    constructor(channel, player, autoresend = false) {
+    constructor(channel, player, refreshInterval, autoresend = false) {
         if (!channel) throw new Error("Channel cannot be undefinded")
         if (!player) throw new Error("Player cannot be undefinded")
         this.channel = channel
         this.player = player
+        this.refreshInterval = refreshInterval
         /** @type {Message|null}*/
         this._currentMsg = null
 
@@ -26,6 +29,8 @@ class MediaController {
             this._messageCreateListener = this._resendHandler.bind(this)
             this.player.client.on("messageCreate", this._messageCreateListener)
         }
+
+        this._refreshLoop()
     }
 
     async getQueue() {
@@ -170,6 +175,12 @@ class MediaController {
         return true
     }
 
+    async _refreshLoop() {
+        if (this.deleted) return
+        await this.refresh()
+        setTimeout(this._refreshLoop.bind(this), this.refreshInterval)
+    }
+
     async delete() {
         this.deleted = true
         this.player.removeListener("trackStart", this._trackStartListener)
@@ -184,8 +195,7 @@ class MediaController {
             try {
                 await mc._currentMsg.delete()
             } catch (e) {
-                iter++
-                if (iter >= DELETE_LOOPS)
+                if (++iter >= DELETE_LOOPS)
                     return
                 setTimeout(del, 1000)
             }
