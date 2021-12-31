@@ -42,6 +42,7 @@ class Bot extends Client {
                 cmd.usage = cmd.usage || null
                 commands.push(cmd)
             }
+            if (typeof cog._init == "function") cog._init(this)
             this.cogs[cogName] = {}
             this.cogs[cogName].commands = commands
         })

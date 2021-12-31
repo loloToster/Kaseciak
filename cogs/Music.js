@@ -17,6 +17,29 @@ async function joinVC(msg, queue) {
 }
 
 module.exports = {
+    /**
+     * @param {Client} bot 
+     */
+    _init: bot => {
+        bot.on("voiceStateUpdate", async (oldState, newState) => {
+            if (oldState.id != bot.user.id || newState.channel)
+                return
+
+            /**@type {Player} */
+            const player = bot.player
+
+            const queue = player.getQueue(newState.guild.id)
+
+            if (!queue) return
+            queue.destroy(true)
+        })
+
+        bot.on("interactionCreate", async i => {
+            if (!i.isButton()) return
+            console.log("interaction:", i.customId)
+            await i.deferUpdate()
+        })
+    },
     play: {
         aliases: ["p"],
         description: "Odtwarza lub dodaje do kolejki podaną piosenkę",
@@ -24,11 +47,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
 
             const queue = player.createQueue(msg.guild, {
                 metadata: {
@@ -91,11 +114,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             if (!queue || !queue.playing)
@@ -128,11 +151,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             await queue.back()
@@ -145,11 +168,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             queue.setPaused(true)
@@ -162,11 +185,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             queue.setPaused(false)
@@ -180,11 +203,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             let secs = parseInt(args[0])
@@ -206,11 +229,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             queue.clear()
@@ -224,11 +247,11 @@ module.exports = {
         /**
         * @param {Message} msg 
         * @param {String[]} args 
-        * @param {Client} client
+        * @param {Client} bot
         */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             if (!queue.current)
@@ -257,9 +280,14 @@ module.exports = {
     queue: {
         aliases: ["q"],
         description: "Wyświetla kolejkę",
-        async execute(msg, args, client) {
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} bot
+         */
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             await msg.channel.send(queue.toString())
@@ -270,11 +298,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             queue.shuffle()
@@ -287,11 +315,11 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             /**@type {Player} */
-            const player = client.player
+            const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
             queue.destroy(true)
@@ -303,9 +331,9 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             await msg.channel.send({
                 content: "abc",
                 components: [

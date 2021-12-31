@@ -5,18 +5,22 @@ const { readFile, writeFile } = require("fs/promises")
 const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
 const writeJSON = async (p, obj) => await writeFile(p, JSON.stringify(obj))
 
-if (!existsSync("./prefixes.json"))
-    writeJSON("./prefixes.json", {})
-
 module.exports = {
+    /**
+     * @param {Client} bot 
+     */
+    _init: bot => {
+        if (!existsSync("./prefixes.json"))
+            writeJSON("./prefixes.json", {})
+    },
     ping: {
         description: "Sprawdza czy bot jest uruchomiony",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             await msg.channel.send(`Pong! \`${msg.createdTimestamp - Date.now()}ms\``)
         }
     },
@@ -26,13 +30,13 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             let data = await readJSON("./prefixes.json")
 
             if (!args[0]) {
-                let currentPrefix = data[msg.guildId] || client.prefix
+                let currentPrefix = data[msg.guildId] || bot.prefix
                 return await msg.channel.send(`Aktualny prefix to: \`${currentPrefix}\``)
             }
 
@@ -52,26 +56,26 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             let emb = new MessageEmbed()
 
             if (args[0]) {
-                const cmd = client.getCommand(args[0])
+                const cmd = bot.getCommand(args[0])
                 if (cmd) {
                     let invokeMethods = cmd.aliases
                     invokeMethods.unshift(cmd.name)
 
                     let invokeMethodsText = ""
                     for (const method of invokeMethods) {
-                        invokeMethodsText += `• \`${client.prefix}${method}\`\n`
+                        invokeMethodsText += `• \`${bot.prefix}${method}\`\n`
                     }
 
                     emb.setTitle(`${cmd.cog} > ${cmd.name}:`)
                         .addField("Opis:", cmd.description || "Ta komenda nie ma opisu")
                         .addField("Wywoływanie:", invokeMethodsText)
-                        .addField("Używanie:", "```\n" + client.prefix + (
+                        .addField("Używanie:", "```\n" + bot.prefix + (
                             cmd.usage || cmd.name
                         ) + "\n```")
 
@@ -81,16 +85,16 @@ module.exports = {
                 }
             }
 
-            for (const cog in client.cogs) {
+            for (const cog in bot.cogs) {
                 let text = ""
-                for (const cmd of client.cogs[cog].commands) {
+                for (const cmd of bot.cogs[cog].commands) {
                     text += `- ${cmd.name}\n`
                 }
                 emb.addField(`**${cog}:**`, text, false)
             }
 
-            const prefix = typeof client.prefix == "function" ?
-                await client.prefix(client, msg) : client.prefix
+            const prefix = typeof bot.prefix == "function" ?
+                await bot.prefix(bot, msg) : bot.prefix
 
             emb.setFooter(prefix + "help {nazwa komendy}")
 

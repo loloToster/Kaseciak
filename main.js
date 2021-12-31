@@ -57,23 +57,7 @@ async function onError(type, queue, error) {
 player.on("error", (q, e) => onError("error", q, e))
 player.on("connectionError", (q, e) => onError("connectionError", q, e))
 
-bot.on("voiceStateUpdate", async (oldState, newState) => {
-    if (oldState.id != bot.user.id || newState.channel)
-        return
-
-    const queue = player.getQueue(newState.guild.id)
-
-    if (!queue) return
-    queue.destroy(true)
-})
-
 bot.player = player
-
-bot.on("interactionCreate", async i => {
-    if (!i.isButton()) return
-    console.log("interaction:", i.customId)
-    await i.deferUpdate()
-})
 
 bot.loadCogsFromDir("./cogs")
 

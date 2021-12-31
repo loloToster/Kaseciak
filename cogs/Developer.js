@@ -5,9 +5,9 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} client
+         * @param {Client} bot
          */
-        async execute(msg, args, client) {
+        async execute(msg, args, bot) {
             if (msg.author.id == process.env.OWNER)
                 process.exit(0)
         }
