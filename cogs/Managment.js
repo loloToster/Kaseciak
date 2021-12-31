@@ -36,7 +36,7 @@ module.exports = {
             let data = await readJSON("./prefixes.json")
 
             if (!args[0]) {
-                let currentPrefix = data[msg.guildId] || bot.prefix
+                let currentPrefix = data[msg.guildId] || process.env.DEF_PREFIX
                 return await msg.channel.send(`Aktualny prefix to: \`${currentPrefix}\``)
             }
 
@@ -61,6 +61,9 @@ module.exports = {
         async execute(msg, args, bot) {
             let emb = new MessageEmbed()
 
+            const prefix = typeof bot.prefix == "function" ?
+                await bot.prefix(bot, msg) : bot.prefix
+
             if (args[0]) {
                 const cmd = bot.getCommand(args[0])
                 if (cmd) {
@@ -69,13 +72,13 @@ module.exports = {
 
                     let invokeMethodsText = ""
                     for (const method of invokeMethods) {
-                        invokeMethodsText += `• \`${bot.prefix}${method}\`\n`
+                        invokeMethodsText += `• \`${prefix}${method}\`\n`
                     }
 
                     emb.setTitle(`${cmd.cog} > ${cmd.name}:`)
                         .addField("Opis:", cmd.description || "Ta komenda nie ma opisu")
                         .addField("Wywoływanie:", invokeMethodsText)
-                        .addField("Używanie:", "```\n" + bot.prefix + (
+                        .addField("Używanie:", "```\n" + prefix + (
                             cmd.usage || cmd.name
                         ) + "\n```")
 
@@ -93,10 +96,7 @@ module.exports = {
                 emb.addField(`**${cog}:**`, text, false)
             }
 
-            const prefix = typeof bot.prefix == "function" ?
-                await bot.prefix(bot, msg) : bot.prefix
-
-            emb.setFooter(prefix + "help {nazwa komendy}")
+            emb.setFooter({ text: prefix + "help {nazwa komendy}" })
 
             await msg.channel.send({
                 embeds: [emb]

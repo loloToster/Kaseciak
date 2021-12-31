@@ -9,7 +9,6 @@ const Bot = require("./Bot")
 
 const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
 
-const DEF_PREFIX = ">"
 const bot = new Bot({
     intents: [
         Intents.FLAGS.GUILDS,
@@ -30,7 +29,7 @@ const bot = new Bot({
         Intents.FLAGS.GUILD_SCHEDULED_EVENTS,
     ],
     prefix: async (bot, msg) =>
-        (await readJSON("./prefixes.json"))[msg.guildId] || DEF_PREFIX
+        (await readJSON("./prefixes.json"))[msg.guildId] || process.env.DEF_PREFIX
 })
 
 bot.once("ready", () => {
