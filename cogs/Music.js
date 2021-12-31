@@ -1,4 +1,4 @@
-const { Client, Message, MessageEmbed } = require("discord.js")
+const { Client, Message, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
 const { Player, Queue } = require("discord-player")
 
 /**
@@ -297,6 +297,43 @@ module.exports = {
             queue.destroy(true)
 
             await msg.channel.send("Zatrzymuje i kasuje kolejke")
+        }
+    },
+    player: {
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            await msg.channel.send({
+                content: "abc",
+                components: [
+                    new MessageActionRow()
+                        .addComponents([
+                            new MessageButton()
+                                .setCustomId("shuffle")
+                                .setEmoji("🔀")
+                                .setStyle("SECONDARY"),
+                            new MessageButton()
+                                .setCustomId("prev")
+                                .setEmoji("⏪")
+                                .setStyle("SECONDARY"),
+                            new MessageButton()
+                                .setCustomId("pause-play")
+                                .setEmoji("⏯️")
+                                .setStyle("SECONDARY"),
+                            new MessageButton()
+                                .setCustomId("next")
+                                .setEmoji("⏩")
+                                .setStyle("SECONDARY"),
+                            new MessageButton()
+                                .setCustomId("loop")
+                                .setEmoji("🔁")
+                                .setStyle("SECONDARY")
+                        ])
+                ]
+            })
         }
     }
 }

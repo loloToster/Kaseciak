@@ -69,6 +69,12 @@ bot.on("voiceStateUpdate", async (oldState, newState) => {
 
 bot.player = player
 
+bot.on("interactionCreate", async i => {
+    if (!i.isButton()) return
+    console.log("interaction:", i.customId)
+    await i.deferUpdate()
+})
+
 bot.loadCogsFromDir("./cogs")
 
 bot.login(process.env.TOKEN)
