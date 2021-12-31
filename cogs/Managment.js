@@ -1,13 +1,14 @@
-const { Client, Message, MessageEmbed } = require("discord.js")
+const { Message, MessageEmbed } = require("discord.js")
 const { existsSync } = require("fs")
 const { readFile, writeFile } = require("fs/promises")
+const Bot = require("../modules/Bot")
 
 const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
 const writeJSON = async (p, obj) => await writeFile(p, JSON.stringify(obj))
 
 module.exports = {
     /**
-     * @param {Client} bot 
+     * @param {Bot} bot 
      */
     _init: bot => {
         if (!existsSync("./prefixes.json"))
@@ -18,7 +19,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             await msg.channel.send(`Pong! \`${msg.createdTimestamp - Date.now()}ms\``)
@@ -30,7 +31,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             let data = await readJSON("./prefixes.json")
@@ -56,7 +57,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             let emb = new MessageEmbed()

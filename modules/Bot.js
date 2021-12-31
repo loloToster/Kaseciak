@@ -1,8 +1,7 @@
-const { Client, ClientOptions } = require("discord.js")
+const { Client, ClientOptions, Message } = require("discord.js")
 const { readdirSync } = require("fs")
 
 class Bot extends Client {
-
     /** @param {ClientOptions} options */
     constructor(options) {
         super(options)
@@ -26,6 +25,9 @@ class Bot extends Client {
         })
     }
 
+    /**
+     * @param {String} dir 
+     */
     loadCogsFromDir(dir) {
         readdirSync(dir).forEach(file => {
             if (!file.endsWith(".js")) return
@@ -48,6 +50,10 @@ class Bot extends Client {
         })
     }
 
+    /**
+     * @param {String} name 
+     * @returns {Object}
+     */
     getCommand(name) {
         for (const cog in this.cogs) {
             for (const cmd of this.cogs[cog].commands) {
@@ -59,6 +65,12 @@ class Bot extends Client {
         return false
     }
 
+    /**
+     * @param {Message} msg 
+     * @param {String} cmdName 
+     * @param {String[]} args 
+     * @returns 
+     */
     async executeCommand(msg, cmdName, args) {
         const cmd = this.getCommand(cmdName)
         if (!cmd) return false

@@ -1,5 +1,6 @@
-const { Client, Message, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
+const { Message, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
 const { Player, Queue } = require("discord-player")
+const Bot = require("../modules/Bot")
 
 /**
  * @param {Message} msg 
@@ -18,7 +19,7 @@ async function joinVC(msg, queue) {
 
 module.exports = {
     /**
-     * @param {Client} bot 
+     * @param {Bot} bot
      */
     _init: bot => {
         bot.on("voiceStateUpdate", async (oldState, newState) => {
@@ -36,7 +37,40 @@ module.exports = {
 
         bot.on("interactionCreate", async i => {
             if (!i.isButton()) return
+            /**@type {Player} */
+            const player = bot.player
+            const queue = player.getQueue(i.guildId)
+
+            if (!queue) return
+
             console.log("interaction:", i.customId)
+            switch (i.customId) {
+                case "shuffle":
+                    queue.shuffle()
+                    break
+
+                case "prev":
+                    try {
+                        queue.back()
+                    } catch { }
+                    break
+
+                case "pause-play":
+                    queue.setPaused(!queue.connection.paused)
+                    break
+
+                case "next":
+                    queue.skip()
+                    break
+
+                case "loop":
+
+                    break
+
+                default:
+                    break
+            }
+
             await i.deferUpdate()
         })
     },
@@ -47,7 +81,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -114,7 +148,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -151,7 +185,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -168,7 +202,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -185,7 +219,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -203,7 +237,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -229,7 +263,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -247,7 +281,7 @@ module.exports = {
         /**
         * @param {Message} msg 
         * @param {String[]} args 
-        * @param {Client} bot
+        * @param {Bot} bot
         */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -283,7 +317,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -298,7 +332,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -315,7 +349,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             /**@type {Player} */
@@ -331,7 +365,7 @@ module.exports = {
         /**
          * @param {Message} msg 
          * @param {String[]} args 
-         * @param {Client} bot
+         * @param {Bot} bot
          */
         async execute(msg, args, bot) {
             await msg.channel.send({

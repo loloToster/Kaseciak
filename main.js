@@ -5,7 +5,7 @@ const { Intents } = require("discord.js")
 const { Player, Queue } = require("discord-player")
 const { readFile } = require("fs/promises")
 
-const Bot = require("./Bot")
+const Bot = require("./modules/Bot")
 
 const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
 
@@ -58,6 +58,6 @@ player.on("connectionError", (q, e) => onError("connectionError", q, e))
 
 bot.player = player
 
-bot.loadCogsFromDir("./cogs")
+bot.loadCogsFromDir(__dirname + "/cogs")
 
 bot.login(process.env.TOKEN)
