@@ -1,6 +1,10 @@
 const { Client, Message, MessageEmbed } = require("discord.js")
-const { Player } = require("discord-player")
+const { Player, Queue } = require("discord-player")
 
+/**
+ * @param {Message} msg 
+ * @param {Queue} queue 
+ */
 async function joinVC(msg, queue) {
     try {
         if (!queue.connection) await queue.connect(msg.member.voice.channel)
@@ -31,23 +35,25 @@ module.exports = {
                     channel: msg.channel
                 },
                 leaveOnEnd: false,
-                leaveOnStop: false
+                leaveOnStop: false,
+                bufferingTimeout: 500
             })
 
             if (await joinVC(msg, queue) == false)
                 return
 
+            if (!args[0])
+                return await queue.play()
+
             let query = args.join(" ")
 
-            const track = await player.search(query, {
+            const searchResult = await player.search(query, {
                 requestedBy: msg.member
-            }).then(x => x.tracks[0])
+            })
 
-            if (!track)
-                return await msg.channel.send(`❌ | Nie znalazłem piosenki **${query}**!`)
+            const playlist = searchResult.playlist
 
-            if (track.playlist) {
-                const playlist = track.playlist
+            if (playlist) {
                 const tracks = playlist.tracks
                 await msg.channel.send({
                     embeds: [
@@ -61,8 +67,8 @@ module.exports = {
 
                 queue.addTracks(tracks)
 
-                await queue.play()
-            } else {
+            } else if (searchResult.tracks[0]) {
+                const track = searchResult.tracks[0]
                 await msg.channel.send({
                     embeds: [
                         new MessageEmbed()
@@ -74,7 +80,8 @@ module.exports = {
                 })
 
                 await queue.play(track)
-            }
+            } else
+                await msg.channel.send(`❌ | Nie znalazłem piosenki **${query}**!`)
         }
     },
     skip: {
@@ -273,6 +280,23 @@ module.exports = {
             queue.shuffle()
 
             await msg.channel.send("Zshufflowałem piosenki 🔀")
+        }
+    },
+    stop: {
+        description: "Zatrzymuje bota i kasuje kolejke",
+        /**
+         * @param {Message} msg 
+         * @param {String[]} args 
+         * @param {Client} client
+         */
+        async execute(msg, args, client) {
+            /**@type {Player} */
+            const player = client.player
+            const queue = player.getQueue(msg.guild.id)
+
+            queue.destroy(true)
+
+            await msg.channel.send("Zatrzymuje i kasuje kolejke")
         }
     }
 }
