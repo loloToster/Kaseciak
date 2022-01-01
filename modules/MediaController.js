@@ -1,5 +1,6 @@
 const { TextChannel, MessageActionRow, MessageButton, Message, Interaction, MessageEmbed } = require("discord.js")
 const { Player, Queue } = require("discord-player")
+const getColor = require("./getColor")
 
 const DELETE_LOOPS = 3
 
@@ -92,21 +93,38 @@ class MediaController {
     }
 
     /** @param {Queue} queue */
-    _createEmbed(queue) {
+    async _createEmbed(queue) {
         const emb = new MessageEmbed()
         const track = queue?.current
 
         if (track) {
             const timestamps = queue.getPlayerTimestamp()
 
+            const user = track.requestedBy
+            if (user)
+                emb.setAuthor({
+                    name: `Dodane przez: ${user.username}#${user.discriminator}`,
+                    iconURL: user.avatarURL()
+                })
+
             emb.setTitle(`**${track.title}**`)
                 .setURL(track.url)
                 .setThumbnail(track.thumbnail)
-                .setDescription(track.author)
-                .addField(
-                    "\u2800",
-                    `${timestamps.current}┃${queue.createProgressBar({ length: 13 })}┃${timestamps.end}`
-                )
+                .addField(track.author,
+                    `${timestamps.current}┃${queue.createProgressBar({ length: 13 })}┃${timestamps.end}`,
+                    false)
+
+            const color = await getColor(track.thumbnail, 500)
+            if (color)
+                emb.setColor(color)
+
+            const prevTrack = queue.previousTracks.at(-2)
+            if (prevTrack)
+                emb.addField("Poprzednia:", `${prevTrack.title} \`${prevTrack.author}\``, true)
+
+            const nextTrack = queue.tracks[0]
+            if (nextTrack)
+                emb.addField("Następna:", `${nextTrack.title} \`${nextTrack.author}\``, true)
         } else {
             emb.setTitle("Nic nie jest odtwarzane")
         }
@@ -120,7 +138,7 @@ class MediaController {
 
         this._currentMsg = await this.channel.send({
             embeds: [
-                this._createEmbed(queue)
+                await this._createEmbed(queue)
             ],
             components: [
                 new MessageActionRow()
@@ -168,7 +186,7 @@ class MediaController {
         try {
             await this._currentMsg.edit({
                 embeds: [
-                    this._createEmbed(queue)
+                    await this._createEmbed(queue)
                 ]
             })
         } catch { return false }
