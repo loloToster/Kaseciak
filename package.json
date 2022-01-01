@@ -18,6 +18,7 @@
     "dotenv": "^10.0.0",
     "ffmpeg-static": "^4.4.0",
     "get-image-colors": "^4.0.0",
+    "node-youtube-music": "^0.7.0",
     "opusscript": "^0.0.8"
   }
 }

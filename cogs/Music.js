@@ -1,7 +1,19 @@
-const { Message, MessageEmbed, MessageActionRow, MessageButton } = require("discord.js")
+const { Message, MessageEmbed } = require("discord.js")
 const { Player, Queue } = require("discord-player")
 const Bot = require("../modules/Bot")
 const MediaController = require("../modules/MediaController")
+const ytMusic = require("../modules/ytMusicToTracks")
+
+// https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
+function isValidUrl(s) {
+    let url
+    try {
+        url = new URL(s)
+    } catch {
+        return false
+    }
+    return url.protocol == "http:" || url.protocol == "https:"
+}
 
 /**
  * @param {Message} msg 
@@ -40,7 +52,7 @@ module.exports = {
     play: {
         aliases: ["p"],
         description: "Odtwarza lub dodaje do kolejki podaną piosenkę",
-        usage: "play {piosenka}",
+        usage: "play {piosenka|link do playlisty}",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -62,14 +74,23 @@ module.exports = {
             if (await joinVC(msg, queue) == false)
                 return
 
-            if (!args[0])
-                return await queue.play()
+            if (!args[0]) {
+                if (!queue.playing)
+                    await queue.play()
+                return
+            }
 
             let query = args.join(" ")
 
-            const searchResult = await player.search(query, {
-                requestedBy: msg.member
-            })
+            let searchResult = {}
+
+            if (!isValidUrl(query))
+                searchResult = await ytMusic(query, player, msg.member)
+
+            if (!searchResult.tracks?.length)
+                searchResult = await player.search(query, {
+                    requestedBy: msg.member
+                })
 
             const playlist = searchResult.playlist
 
@@ -85,9 +106,10 @@ module.exports = {
                     ]
                 })
 
+                await queue.play(tracks.shift())
                 queue.addTracks(tracks)
 
-            } else if (searchResult.tracks[0]) {
+            } else if (searchResult?.tracks[0]) {
                 const track = searchResult.tracks[0]
                 await msg.channel.send({
                     embeds: [
@@ -100,6 +122,7 @@ module.exports = {
                 })
 
                 await queue.play(track)
+
             } else
                 await msg.channel.send(`❌ | Nie znalazłem piosenki **${query}**!`)
         }
