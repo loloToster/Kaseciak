@@ -1,12 +1,49 @@
 const { Client, ClientOptions, Message } = require("discord.js")
 const { readdirSync } = require("fs")
 
+class Loop {
+    constructor(bot, name, action, ms) {
+        this.bot = bot
+        this.name = name
+        this.action = action
+        this.ms = ms
+        this._timeout = null
+    }
+
+    start() {
+        this._runner()
+    }
+
+    stop() {
+        clearTimeout(this._timeout)
+        this._timeout = null
+    }
+
+    isRunning() {
+        return new Boolean(this._timeout)
+    }
+
+    async _runner() {
+        try {
+            const shouldContinue = await this.action()
+            if (shouldContinue === false) return this.stop()
+        } catch (e) {
+            console.log(e)
+            this.bot.emit("loopError", this.name, e)
+        }
+        this._timeout = setTimeout(this._runner.bind(this), this.ms)
+    }
+}
+
 class Bot extends Client {
     /** @param {ClientOptions} options */
     constructor(options) {
         super(options)
+
         this.cogs = {}
+        this.loops = {}
         this.prefix = options.prefix
+
         this.on("messageCreate", async msg => {
             let content = msg.content
 
@@ -80,6 +117,15 @@ class Bot extends Client {
             this.emit("commandError", msg, err)
         }
         return true
+    }
+
+    /**
+     * @param {String} name 
+     * @param {Function} action 
+     * @param {Number} interval
+     */
+    loop(name, action, interval) {
+        this.loops[name] = new Loop(this, name, action, interval)
     }
 }
 
