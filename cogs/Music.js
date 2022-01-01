@@ -51,8 +51,8 @@ module.exports = {
     },
     play: {
         aliases: ["p"],
-        description: "Odtwarza lub dodaje do kolejki podaną piosenkę",
-        usage: "play {piosenka|link do playlisty}",
+        description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę\nFlagi:\n`-n` dodaje piosenkę na początek playlisty\n`-nytm` Używa domyślnej wyszukiwarki a nie yt musicowej",
+        usage: "play {piosenka|link do playlisty} {flagi}",
         /**
          * @param {Message} msg 
          * @param {String[]} args 
@@ -80,11 +80,24 @@ module.exports = {
                 return
             }
 
+            let playNext = false
+            let noYTmusic = false
+
+            // process flags:
+            for (let i = args.length - 1; i >= 0; i--) {
+                const arg = args[i]
+                if (arg.startsWith("-")) {
+                    const flag = args.pop().substring(1)
+                    if (flag == "n") playNext = true
+                    else if (flag == "nytm") noYTmusic = true
+                } else break
+            }
+
             let query = args.join(" ")
 
             let searchResult = {}
 
-            if (!isValidUrl(query))
+            if (!isValidUrl(query) && !noYTmusic)
                 searchResult = await ytMusic(query, player, msg.member)
 
             if (!searchResult.tracks?.length)
@@ -121,7 +134,10 @@ module.exports = {
                     ]
                 })
 
-                await queue.play(track)
+                if (playNext)
+                    queue.insert(track)
+                else
+                    await queue.play(track)
 
             } else
                 await msg.channel.send(`❌ | Nie znalazłem piosenki **${query}**!`)
