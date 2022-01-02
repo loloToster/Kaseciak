@@ -8,8 +8,8 @@ module.exports = (bot: Bot) => {
         const msg = `${type}: \`${error.message}\``
         console.log(msg)
 
-        // @ts-ignore: Object is of type 'unknown'.
-        await queue.metadata.channel.send(msg)
+        const metadata: any = queue.metadata
+        await metadata.channel.send(msg)
     }
 
     player.on("error", (q, e) => onError("error", q, e))

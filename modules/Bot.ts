@@ -43,6 +43,8 @@ export class Loop {
 }
 
 export interface Command {
+    cog?: string,
+    name: string,
     aliases?: string[],
     description?: string,
     usage?: string,
@@ -51,7 +53,7 @@ export interface Command {
 
 export interface Cog {
     _init?: ((bot: Bot) => any),
-    [key: string]: any
+    commands: Command[]
 }
 
 export interface BotOptions {
@@ -92,27 +94,25 @@ export class Bot extends Client {
         readdirSync(dir).forEach(file => {
             if (!file.endsWith("." + lang)) return
             let cogName = file.slice(0, -3)
-            let { default: cog } = require(`${dir}/${cogName}`)
-            let commands = []
-            for (const cmdName in cog) {
-                let cmd = cog[cmdName]
+            let cog: Cog = require(`${dir}/${cogName}`).default
+            let commands: Command[] = []
+            for (const cmd of cog.commands) {
                 if (typeof cmd.execute != "function") continue
-                cmd.name = cmdName
                 cmd.cog = cogName
                 cmd.aliases = cmd.aliases || []
-                cmd.description = cmd.description || null
-                cmd.usage = cmd.usage || null
+                cmd.description = cmd.description || ""
+                cmd.usage = cmd.usage || ""
                 commands.push(cmd)
             }
             if (typeof cog._init == "function") cog._init(this)
-            this.cogs[cogName] = {}
-            this.cogs[cogName].commands = commands
+            this.cogs[cogName] = { commands: commands }
         })
     }
 
     getCommand(name: string) {
         for (const cog in this.cogs) {
             for (const cmd of this.cogs[cog].commands) {
+                if (!cmd.aliases) continue
                 if (name == cmd.name || cmd.aliases.includes(name)) {
                     return cmd
                 }
