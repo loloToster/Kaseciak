@@ -1,39 +1,28 @@
-const { Message, MessageEmbed } = require("discord.js")
-const { existsSync } = require("fs")
-const { readFile, writeFile } = require("fs/promises")
-const Bot = require("../modules/Bot")
+import { Message, MessageEmbed } from "discord.js"
+import { existsSync } from "fs"
+import { readFile, writeFile } from "fs/promises"
+import { Bot } from "../modules/Bot"
 
-const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
-const writeJSON = async (p, obj) => await writeFile(p, JSON.stringify(obj))
+const readJSON = async (p: string) => JSON.parse(await readFile(p, "utf-8"))
+const writeJSON = async (p: string, obj: Object) => await writeFile(p, JSON.stringify(obj))
 
-module.exports = {
-    /**
-     * @param {Bot} bot 
-     */
-    _init: bot => {
+export default {
+    _init: (bot: Bot) => {
         if (!existsSync("./prefixes.json"))
             writeJSON("./prefixes.json", {})
     },
     ping: {
         description: "Sprawdza czy bot jest uruchomiony",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
+        async execute(msg: Message, args: string[], bot: Bot) {
             await msg.channel.send(`Pong! \`${msg.createdTimestamp - Date.now()}ms\``)
         }
     },
     prefix: {
         description: "Zmienia prefix",
         usage: "prefix {nowy prefix}",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guildId) return
+
             let data = await readJSON("./prefixes.json")
 
             if (!args[0]) {
@@ -54,12 +43,7 @@ module.exports = {
         aliases: ["h"],
         description: "Wyświetla pomoc",
         usage: "help {komenda:opcjonalne}",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
+        async execute(msg: Message, args: string[], bot: Bot) {
             let emb = new MessageEmbed()
 
             const prefix = typeof bot.prefix == "function" ?

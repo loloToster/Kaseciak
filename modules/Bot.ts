@@ -1,13 +1,19 @@
-const { Client, ClientOptions, Message } = require("discord.js")
-const { readdirSync } = require("fs")
+import { Client, ClientOptions, Message } from "discord.js"
+import { readdirSync } from "fs"
 
-class Loop {
-    constructor(bot, name, action, ms) {
+export class Loop {
+    bot: Bot
+    name: string
+    action: Function
+    ms: number
+    private timeout: null | NodeJS.Timeout
+
+    constructor(bot: Bot, name: string, action: Function, ms: number) {
         this.bot = bot
         this.name = name
         this.action = action
         this.ms = ms
-        this._timeout = null
+        this.timeout = null
     }
 
     start() {
@@ -15,12 +21,13 @@ class Loop {
     }
 
     stop() {
-        clearTimeout(this._timeout)
-        this._timeout = null
+        if (this.timeout)
+            clearTimeout(this.timeout)
+        this.timeout = null
     }
 
     isRunning() {
-        return new Boolean(this._timeout)
+        return new Boolean(this.timeout)
     }
 
     async _runner() {
@@ -31,18 +38,37 @@ class Loop {
             console.log(e)
             this.bot.emit("loopError", this.name, e)
         }
-        this._timeout = setTimeout(this._runner.bind(this), this.ms)
+        this.timeout = setTimeout(this._runner.bind(this), this.ms)
     }
 }
 
-class Bot extends Client {
-    /** @param {ClientOptions} options */
-    constructor(options) {
+export interface Command {
+    aliases?: string[],
+    description?: string,
+    usage?: string,
+    execute: (msg: Message, args: string[], bot: Bot) => any
+}
+
+export interface Cog {
+    _init?: ((bot: Bot) => any),
+    [key: string]: any
+}
+
+export interface BotOptions {
+    prefix: string | Function
+}
+
+export class Bot extends Client {
+    cogs: { [key: string]: Cog }
+    loops: { [key: string]: Loop }
+    prefix: string | Function
+
+    constructor(options: ClientOptions, botOptions: BotOptions) {
         super(options)
 
         this.cogs = {}
         this.loops = {}
-        this.prefix = options.prefix
+        this.prefix = botOptions.prefix
 
         this.on("messageCreate", async msg => {
             let content = msg.content
@@ -57,19 +83,16 @@ class Bot extends Client {
             let args = content.split(/ +/g)
             let command = args.shift()
 
-            let result = await this.executeCommand(msg, command, args)
+            let result = await this.executeCommand(msg, command || "", args)
             if (!result) this.emit("commandNotFound", msg, command, args)
         })
     }
 
-    /**
-     * @param {String} dir 
-     */
-    loadCogsFromDir(dir) {
+    loadCogsFromDir(dir: string, lang: "ts" | "js") {
         readdirSync(dir).forEach(file => {
-            if (!file.endsWith(".js")) return
+            if (!file.endsWith("." + lang)) return
             let cogName = file.slice(0, -3)
-            let cog = require(`${dir}/${cogName}`)
+            let { default: cog } = require(`${dir}/${cogName}`)
             let commands = []
             for (const cmdName in cog) {
                 let cmd = cog[cmdName]
@@ -87,11 +110,7 @@ class Bot extends Client {
         })
     }
 
-    /**
-     * @param {String} name 
-     * @returns {Object|Boolean} command
-     */
-    getCommand(name) {
+    getCommand(name: string) {
         for (const cog in this.cogs) {
             for (const cmd of this.cogs[cog].commands) {
                 if (name == cmd.name || cmd.aliases.includes(name)) {
@@ -102,13 +121,8 @@ class Bot extends Client {
         return false
     }
 
-    /**
-     * @param {Message} msg 
-     * @param {String} cmdName 
-     * @param {String[]} args 
-     * @returns {Boolean} command found
-     */
-    async executeCommand(msg, cmdName, args) {
+    async executeCommand(msg: Message, cmdName: string, args: string[]) {
+        if (!cmdName) return false
         const cmd = this.getCommand(cmdName)
         if (!cmd) return false
         try {
@@ -119,14 +133,7 @@ class Bot extends Client {
         return true
     }
 
-    /**
-     * @param {String} name 
-     * @param {Function} action 
-     * @param {Number} interval
-     */
-    loop(name, action, interval) {
+    loop(name: string, action: Function, interval: number) {
         this.loops[name] = new Loop(this, name, action, interval)
     }
 }
-
-module.exports = Bot

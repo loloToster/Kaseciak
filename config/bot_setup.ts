@@ -1,5 +1,5 @@
 // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
-function shuffle(array) {
+function shuffle(array: Array<any>) {
     let currentIndex = array.length, randomIndex
 
     while (currentIndex != 0) {
@@ -13,12 +13,12 @@ function shuffle(array) {
     return array
 }
 
-const Bot = require("../modules/Bot")
-const { Intents } = require("discord.js")
-const { Player, Queue } = require("discord-player")
-const { readFile } = require("fs/promises")
+import { Bot } from "../modules/Bot"
+import { Intents, Message } from "discord.js"
+import { Player, Queue } from "discord-player"
+import { readFile } from "fs/promises"
 
-const readJSON = async p => JSON.parse(await readFile(p, "utf-8"))
+const readJSON = async (p: string) => JSON.parse(await readFile(p, "utf-8"))
 
 const bot = new Bot({
     intents: [
@@ -38,20 +38,21 @@ const bot = new Bot({
         Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
         Intents.FLAGS.DIRECT_MESSAGE_TYPING,
         Intents.FLAGS.GUILD_SCHEDULED_EVENTS,
-    ],
-    prefix: async (bot, msg) =>
-        (await readJSON("./prefixes.json"))[msg.guildId] || process.env.DEF_PREFIX
+    ]
+}, {
+    prefix: async (bot: Bot, msg: Message) =>
+        (await readJSON("./prefixes.json"))[msg.guildId ?? ""] || process.env.DEF_PREFIX
 })
 
 bot.loop("status", async () => {
-    /**@type {Player} */
-    const player = bot.player
+    //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+    const player: Player = bot.player
 
-    /**@type {Queue[]} */
-    const shuffledQueues = shuffle(Array.from(player.queues).map(q => q[1]))
+    const shuffledQueues: Queue[] = shuffle(Array.from(player.queues)
+        .map((q: any): Queue => q[1]))
 
     if (!shuffledQueues.length)
-        return bot.user.setActivity()
+        return bot.user?.setActivity()
 
     let track = null
     for (const queue of shuffledQueues) {
@@ -62,14 +63,14 @@ bot.loop("status", async () => {
     }
 
     if (track)
-        bot.user.setActivity({ name: track.title, url: track.url, type: "LISTENING" })
+        bot.user?.setActivity({ name: track.title, url: track.url, type: "LISTENING" })
     else
-        bot.user.setActivity()
+        bot.user?.setActivity()
 
 }, 20000)
 
-bot.on("loopError", (name, e) => {
-    console.error(name + ":", e)
+bot.on("loopError", (name: string, err: Error) => {
+    console.error(name + ":", err)
 })
 
 bot.once("ready", () => {
@@ -77,12 +78,12 @@ bot.once("ready", () => {
     bot.loops.status.start()
 })
 
-bot.on("commandNotFound", async (msg, command, args) => {
+bot.on("commandNotFound", async (msg: Message, command: string, args: string[]) => {
     await msg.channel.send(`Nie znam komendy ${command}`)
 })
 
-bot.on("commandError", async (msg, err) => {
+bot.on("commandError", async (msg: Message, err: Error) => {
     console.error(err)
 })
 
-module.exports = bot
+export default bot

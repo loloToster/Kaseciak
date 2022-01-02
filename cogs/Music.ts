@@ -1,11 +1,11 @@
-const { Message, MessageEmbed } = require("discord.js")
-const { Player, Queue } = require("discord-player")
-const Bot = require("../modules/Bot")
-const MediaController = require("../modules/MediaController")
-const ytMusic = require("../modules/ytMusicToTracks")
+import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel } from "discord.js"
+import { Queue, PlayerSearchResult } from "discord-player"
+import { Bot } from "../modules/Bot"
+import MediaController from "../modules/MediaController"
+import ytMusic from "../modules/ytMusicToTracks"
 
 // https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
-function isValidUrl(s) {
+function isValidUrl(s: string) {
     let url
     try {
         url = new URL(s)
@@ -19,9 +19,10 @@ function isValidUrl(s) {
  * @param {Message} msg 
  * @param {Queue} queue 
  */
-async function joinVC(msg, queue) {
+async function joinVC(msg: Message, queue: Queue) {
+    if (!msg.member) return false
     try {
-        if (!queue.connection) await queue.connect(msg.member.voice.channel)
+        if (!queue.connection) await queue.connect(msg.member.voice.channel as GuildChannelResolvable)
         return true
     } catch {
         queue.destroy()
@@ -30,16 +31,13 @@ async function joinVC(msg, queue) {
     return false
 }
 
-module.exports = {
-    /**
-     * @param {Bot} bot
-     */
-    _init: bot => {
+export default {
+    _init: (bot: Bot) => {
         bot.on("voiceStateUpdate", async (oldState, newState) => {
-            if (oldState.id != bot.user.id || newState.channel)
+            if (oldState.id != bot.user?.id || newState.channel)
                 return
 
-            /**@type {Player} */
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
 
             const queue = player.getQueue(newState.guild.id)
@@ -53,13 +51,10 @@ module.exports = {
         aliases: ["p"],
         description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę\nFlagi:\n`-n` dodaje piosenkę na początek playlisty\n`-nytm` Używa domyślnej wyszukiwarki a nie yt musicowej",
         usage: "play {piosenka|link do playlisty} {flagi}",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
 
             const queue = player.createQueue(msg.guild, {
@@ -87,7 +82,7 @@ module.exports = {
             for (let i = args.length - 1; i >= 0; i--) {
                 const arg = args[i]
                 if (arg.startsWith("-")) {
-                    const flag = args.pop().substring(1)
+                    const flag = args.pop()?.substring(1)
                     if (flag == "n") playNext = true
                     else if (flag == "nytm") noYTmusic = true
                 } else break
@@ -95,10 +90,10 @@ module.exports = {
 
             let query = args.join(" ")
 
-            let searchResult = {}
+            let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
 
             if (!isValidUrl(query) && !noYTmusic)
-                searchResult = await ytMusic(query, player, msg.member)
+                searchResult = await ytMusic(query, player, msg.member as UserResolvable)
 
             if (!searchResult.tracks?.length)
                 searchResult = await player.search(query, {
@@ -147,13 +142,10 @@ module.exports = {
         aliases: ["s"],
         description: "Skipuje obecną lub kilka piosenek",
         usage: "skip {ilość:opcjonalne}",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -161,8 +153,7 @@ module.exports = {
                 return msg.channel.send(`Nie ma czego skipnąć`)
 
             if (args[0]) {
-                let num = args[0]
-                num = parseInt(num)
+                let num = parseInt(args[0])
                 if (typeof num == "number" && num > 1) {
                     if (num > queue.tracks.length)
                         num = queue.tracks.length
@@ -184,13 +175,10 @@ module.exports = {
     back: {
         aliases: ["prev", "previous"],
         description: "Cofa do poprzedniej piosenki",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -201,13 +189,10 @@ module.exports = {
     },
     pause: {
         description: "Pauzuje piosenkę",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -218,13 +203,10 @@ module.exports = {
     },
     resume: {
         description: "Kontunuuje odtwarzanie piosenki",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -236,13 +218,10 @@ module.exports = {
     seek: {
         description: "przewija piosenkę do konkretnego momentu",
         usage: "seek {sekundy}",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -262,13 +241,10 @@ module.exports = {
     clear: {
         aliases: ["c"],
         description: "Czyści kolejkę",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -280,13 +256,10 @@ module.exports = {
     now: {
         aliases: ["np"],
         description: "Wyświetla obecnie odtwarzaną piosenkę",
-        /**
-        * @param {Message} msg 
-        * @param {String[]} args 
-        * @param {Bot} bot
-        */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -316,13 +289,10 @@ module.exports = {
     queue: {
         aliases: ["q"],
         description: "Wyświetla kolejkę",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -331,13 +301,10 @@ module.exports = {
     },
     shuffle: {
         description: "Tasuje kolejkę",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -348,13 +315,10 @@ module.exports = {
     },
     stop: {
         description: "Zatrzymuje bota i kasuje kolejke",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -366,13 +330,10 @@ module.exports = {
     },
     player: {
         description: "Wysyła lub usuwa wiadomość będącą cały czas na dole kanału którą można obsługiwać podstawowe funkcje odtwarzania:\n🔀 odpowiednik komendy shuffle\n⏪ odpowiednik komendy back\n ⏯️ pauzuje lub wznawia odtwarzanie\n ⏩ odpowiednik komendy skip\n 🔄 odświeża informacje",
-        /**
-         * @param {Message} msg 
-         * @param {String[]} args 
-         * @param {Bot} bot
-         */
-        async execute(msg, args, bot) {
-            /**@type {Player} */
+        async execute(msg: Message, args: string[], bot: Bot) {
+            if (!msg.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player = bot.player
             const queue = player.getQueue(msg.guild.id)
 
@@ -383,7 +344,7 @@ module.exports = {
                 await queue.metadata.mc.delete()
                 queue.metadata.mc = undefined
             } else
-                queue.metadata.mc = await new MediaController(msg.channel, player, 5000, true).create()
+                queue.metadata.mc = await new MediaController(msg.channel as TextChannel, player, 5000, true).create()
         }
     }
 }

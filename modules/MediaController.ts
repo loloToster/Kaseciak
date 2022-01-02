@@ -1,24 +1,31 @@
-const { TextChannel, MessageActionRow, MessageButton, Message, Interaction, MessageEmbed } = require("discord.js")
-const { Player, Queue } = require("discord-player")
-const getColor = require("./getColor")
+import { TextChannel, MessageActionRow, MessageButton, Message, Interaction, MessageEmbed, ColorResolvable, HexColorString } from "discord.js"
+import { Player, Queue, Track } from "discord-player"
+import getColor from "./getColor"
 
 const DELETE_LOOPS = 3
 
-class MediaController {
-    /**
-     * @param {TextChannel} channel 
-     * @param {Player} player
-     * @param {Number} refreshInterval
-     * @param {Boolean} autoresend
-     */
-    constructor(channel, player, refreshInterval, autoresend = false) {
+export default class MediaController {
+    channel: TextChannel
+    player: Player
+    refreshInterval: number
+    deleted: boolean
+
+    private currentMsg: Message | null
+
+    _trackStartListener: (q: Queue, t: Track) => any
+    _interactionCreateListener: (i: Interaction) => any
+    _messageCreateListener: undefined | ((m: Message) => any)
+
+    constructor(channel: TextChannel, player: Player, refreshInterval: number, autoresend = false) {
         if (!channel) throw new Error("Channel cannot be undefinded")
         if (!player) throw new Error("Player cannot be undefinded")
+
         this.channel = channel
         this.player = player
         this.refreshInterval = refreshInterval
-        /** @type {Message|null}*/
-        this._currentMsg = null
+        this.deleted = false
+
+        this.currentMsg = null
 
         this._trackStartListener = (q, t) => this.refresh(q)
         this.player.on("trackStart", this._trackStartListener)
@@ -44,8 +51,7 @@ class MediaController {
         return queue
     }
 
-    /** @param {Interaction} i */
-    async _interactionHandler(i) {
+    async _interactionHandler(i: Interaction) {
         if (this.deleted) return false
         if (!i.isButton() || i.channelId != this.channel.id) return
 
@@ -81,10 +87,12 @@ class MediaController {
         await i.deferUpdate()
     }
 
-    /** @param {Message} msg */
-    async _resendHandler(msg) {
-        if (this.deleted) return
-        if (msg.channelId != this.channel.id || msg.id == this._currentMsg?.id) return
+    async _resendHandler(msg: Message) {
+        if (this.deleted || // if media controller is deleted
+            !this.currentMsg || // or there is no message
+            msg.channelId != this.channel.id || // or channel is not the assigned channel
+            msg.id == this.currentMsg.id) // or the message is the same as current message
+            return
         try {
             await this.resend()
         } catch (e) {
@@ -92,8 +100,7 @@ class MediaController {
         }
     }
 
-    /** @param {Queue} queue */
-    async _createEmbed(queue) {
+    async _createEmbed(queue: Queue) {
         const emb = new MessageEmbed()
         const track = queue?.current
 
@@ -104,7 +111,7 @@ class MediaController {
             if (user)
                 emb.setAuthor({
                     name: `Dodane przez: ${user.username}#${user.discriminator}`,
-                    iconURL: user.avatarURL()
+                    iconURL: user.avatarURL() ?? undefined
                 })
 
             emb.setTitle(`**${track.title}**`)
@@ -116,7 +123,7 @@ class MediaController {
 
             const color = await getColor(track.thumbnail, 500)
             if (color)
-                emb.setColor(color)
+                emb.setColor(color as HexColorString)
 
             const prevTrack = queue.previousTracks.at(-2)
             if (prevTrack)
@@ -135,8 +142,9 @@ class MediaController {
     async create() {
         if (this.deleted) return
         const queue = await this.getQueue()
+        if (!queue) return
 
-        this._currentMsg = await this.channel.send({
+        this.currentMsg = await this.channel.send({
             embeds: [
                 await this._createEmbed(queue)
             ],
@@ -172,7 +180,7 @@ class MediaController {
     async resend() {
         if (this.deleted) return false
         try {
-            await this._currentMsg.delete()
+            await this.currentMsg?.delete()
         } catch {
             return false
         }
@@ -180,11 +188,13 @@ class MediaController {
         return true
     }
 
-    async refresh(q = null) {
+    async refresh(q: Queue | null = null) {
         if (this.deleted) return false
         const queue = q || await this.getQueue()
+        if (!queue) return false
+
         try {
-            await this._currentMsg.edit({
+            await this.currentMsg?.edit({
                 embeds: [
                     await this._createEmbed(queue)
                 ]
@@ -203,7 +213,8 @@ class MediaController {
         this.deleted = true
         this.player.removeListener("trackStart", this._trackStartListener)
         this.player.client.removeListener("interactionCreate", this._interactionCreateListener)
-        this.player.client.removeListener("messageCreate", this._messageCreateListener)
+        if (this._messageCreateListener)
+            this.player.client.removeListener("messageCreate", this._messageCreateListener)
 
         // in case the message was not deleted in resend()
         let iter = 0
@@ -211,7 +222,7 @@ class MediaController {
 
         async function del() {
             try {
-                await mc._currentMsg.delete()
+                await mc.currentMsg?.delete()
             } catch (e) {
                 if (++iter >= DELETE_LOOPS)
                     return
@@ -222,5 +233,3 @@ class MediaController {
         del()
     }
 }
-
-module.exports = MediaController

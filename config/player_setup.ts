@@ -1,16 +1,14 @@
-const { Player, Queue } = require("discord-player")
+import { Player, Queue } from "discord-player"
+import { Bot } from "../modules/Bot"
 
-module.exports = (bot) => {
+module.exports = (bot: Bot) => {
     const player = new Player(bot)
 
-    /**
-     * @param {String} type 
-     * @param {Queue} queue 
-     * @param {Error} error 
-     */
-    async function onError(type, queue, error) {
+    async function onError(type: string, queue: Queue, error: Error) {
         const msg = `${type}: \`${error.message}\``
         console.log(msg)
+
+        // @ts-ignore: Object is of type 'unknown'.
         await queue.metadata.channel.send(msg)
     }
 
