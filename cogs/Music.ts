@@ -3,6 +3,7 @@ import { Queue, Player, PlayerSearchResult } from "discord-player"
 import { Bot } from "../modules/Bot"
 import MediaController from "../modules/MediaController"
 import ytMusic from "../modules/ytMusicToTracks"
+import { EmbedBook } from "../modules/EmbedBook"
 
 // https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
 function isValidUrl(s: string) {
@@ -308,7 +309,30 @@ export default {
                 const player: Player = bot.player
                 const queue = player.getQueue(msg.guild.id)
 
-                await msg.channel.send(queue.toString())
+                let embeds: MessageEmbed[] = []
+
+                const chunkSize = 10
+                const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
+                for (let i = 0, chunkNumber = 0; i < queue.tracks.length; i += chunkSize, chunkNumber++) {
+                    const chunk = queue.tracks.slice(i, i + chunkSize)
+                    embeds.push(new MessageEmbed()
+                        .setDescription(
+                            chunk.map(
+                                (track, j) =>
+                                    `${chunkNumber * chunkSize + j + 1}. ${track.title} - ${track.author} \`${track.duration}\``
+                            ).join("\n")
+                        ).setFooter({ text: `Strona ${chunkNumber + 1}/${numberOfChunks}` })
+                    )
+                }
+
+                if (!embeds.length)
+                    return await msg.channel.send("Kolejka jest pusta")
+
+                new EmbedBook({
+                    pages: embeds,
+                    channel: msg.channel as TextChannel,
+                    bot: bot
+                })
             }
         },
         {
