@@ -1,4 +1,4 @@
-import { Message, MessageEmbed } from "discord.js"
+import { Message, MessageEmbed, TextChannel } from "discord.js"
 import { existsSync } from "fs"
 import { readFile, writeFile } from "fs/promises"
 import { Bot } from "../modules/Bot"
@@ -11,6 +11,14 @@ export default {
         if (!existsSync("./prefixes.json"))
             writeJSON("./prefixes.json", {})
     },
+    checks: [
+        {
+            name: "isAdmin",
+            check(msg: Message, args: string[], bot: Bot) {
+                return msg.member?.permissionsIn(msg.channel as TextChannel).has("ADMINISTRATOR")
+            }
+        }
+    ],
     commands: [
         {
             name: "ping",
@@ -21,6 +29,7 @@ export default {
         },
         {
             name: "prefix",
+            check: ["isAdmin"],
             description: "Zmienia prefix",
             usage: "prefix {nowy prefix}",
             async execute(msg: Message, args: string[], bot: Bot) {

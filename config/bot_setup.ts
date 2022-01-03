@@ -78,11 +78,20 @@ bot.once("ready", () => {
     bot.loops.status.start()
 })
 
+bot.on("checkError", async (msg: Message, err: Error) => {
+    if (err.message.includes("isConnectedToVoiceChannel")) {
+        await msg.channel.send("Musisz być na kanale głosowym aby użyć tej komendy")
+    } else if (err.message.includes("isAdmin")) {
+        await msg.channel.send("Musisz być administratorem aby użyć tej komendy")
+    } else
+        console.log("checkError: " + err.message)
+})
+
 bot.on("commandNotFound", async (msg: Message, command: string, args: string[]) => {
     await msg.channel.send(`Nie znam komendy ${command}`)
 })
 
-bot.on("commandError", async (msg: Message, err: Error) => {
+bot.on("commandError", async (msg: Message, command: string, err: Error) => {
     console.error(err)
 })
 

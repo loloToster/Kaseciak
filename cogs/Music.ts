@@ -16,10 +16,6 @@ function isValidUrl(s: string) {
     return url.protocol == "http:" || url.protocol == "https:"
 }
 
-/**
- * @param {Message} msg 
- * @param {Queue} queue 
- */
 async function joinVC(msg: Message, queue: Queue) {
     if (!msg.member) return false
     try {
@@ -33,7 +29,7 @@ async function joinVC(msg: Message, queue: Queue) {
 }
 
 export default {
-    _init: (bot: Bot) => {
+    init: (bot: Bot) => {
         bot.on("voiceStateUpdate", async (oldState, newState) => {
             if (oldState.id != bot.user?.id || newState.channel)
                 return
@@ -45,10 +41,20 @@ export default {
 
             if (!queue) return
             queue.destroy(true)
-            // @ts-ignore: Object is of type 'unknown'.
-            if (queue.metadata.mc) await queue.metadata.mc.delete()
+
+            const metadata: any = queue.metadata
+            if (metadata.mc) await metadata.mc.delete()
         })
     },
+    checks: [
+        {
+            name: "isConnectedToVoiceChannel",
+            global: true,
+            check(msg: Message, args: string[], bot: Bot) {
+                return Boolean(msg.member?.voice.channel)
+            }
+        }
+    ],
     commands: [
         {
             name: "play",
@@ -361,8 +367,9 @@ export default {
                 const queue = player.getQueue(msg.guild.id)
 
                 queue.destroy(true)
-                // @ts-ignore: Object is of type 'unknown'.
-                if (queue.metadata.mc) await queue.metadata.mc.delete()
+
+                const metadata: any = queue.metadata
+                if (metadata.mc) await metadata.mc.delete()
 
                 await msg.channel.send("Zatrzymuje i kasuje kolejke")
             }

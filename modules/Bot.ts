@@ -6,6 +6,7 @@ export class Loop {
     name: string
     action: Function
     ms: number
+
     private timeout: null | NodeJS.Timeout
 
     constructor(bot: Bot, name: string, action: Function, ms: number) {
@@ -30,7 +31,7 @@ export class Loop {
         return new Boolean(this.timeout)
     }
 
-    async _runner() {
+    private async _runner() {
         try {
             const shouldContinue = await this.action()
             if (shouldContinue === false) return this.stop()
@@ -42,28 +43,40 @@ export class Loop {
     }
 }
 
-export interface Command {
-    cog?: string,
+type checkFunc = (msg: Message, args: string[], bot: Bot) => Promise<boolean> | boolean
+
+export interface CommandCheck {
     name: string,
-    aliases?: string[],
-    description?: string,
-    usage?: string,
+    global?: boolean
+    check: checkFunc
+}
+
+export interface Command {
+    cog: string,
+    name: string,
+    check: string[],
+    aliases: string[],
+    description: string,
+    usage: string,
     execute: (msg: Message, args: string[], bot: Bot) => any
 }
 
 export interface Cog {
-    _init?: ((bot: Bot) => any),
+    init?: (bot: Bot) => any,
+    checks: CommandCheck[]
     commands: Command[]
 }
 
+type prefix = string | ((bot: Bot, msg: Message) => Promise<string> | string)
+
 export interface BotOptions {
-    prefix: string | Function
+    prefix: prefix
 }
 
 export class Bot extends Client {
-    cogs: { [key: string]: Cog }
-    loops: { [key: string]: Loop }
-    prefix: string | Function
+    cogs: { [name: string]: Cog }
+    loops: { [name: string]: Loop }
+    prefix: prefix
 
     constructor(options: ClientOptions, botOptions: BotOptions) {
         super(options)
@@ -85,7 +98,7 @@ export class Bot extends Client {
             let args = content.split(/ +/g)
             let command = args.shift()
 
-            let result = await this.executeCommand(msg, command || "", args)
+            let result = await this.executeCommand(msg, command ?? "", args)
             if (!result) this.emit("commandNotFound", msg, command, args)
         })
     }
@@ -94,18 +107,20 @@ export class Bot extends Client {
         readdirSync(dir).forEach(file => {
             if (!file.endsWith("." + lang)) return
             let cogName = file.slice(0, -3)
-            let cog: Cog = require(`${dir}/${cogName}`).default
+            let module = require(`${dir}/${cogName}`)
+            let cog: Cog = lang === "ts" ? module.default : module
             let commands: Command[] = []
             for (const cmd of cog.commands) {
                 if (typeof cmd.execute != "function") continue
                 cmd.cog = cogName
-                cmd.aliases = cmd.aliases || []
-                cmd.description = cmd.description || ""
-                cmd.usage = cmd.usage || ""
+                cmd.check = cmd.check ?? []
+                cmd.aliases = cmd.aliases ?? []
+                cmd.description = cmd.description ?? ""
+                cmd.usage = cmd.usage ?? ""
                 commands.push(cmd)
             }
-            if (typeof cog._init == "function") cog._init(this)
-            this.cogs[cogName] = { commands: commands }
+            if (typeof cog.init == "function") cog.init(this)
+            this.cogs[cogName] = { commands: commands, checks: cog.checks ?? [] }
         })
     }
 
@@ -121,15 +136,41 @@ export class Bot extends Client {
         return false
     }
 
-    async executeCommand(msg: Message, cmdName: string, args: string[]) {
+
+    /**
+     * @returns true if Context passed checks. If it didn't it returns the name of the failed check
+     */
+    async check(msg: Message, args: string[], cmd: Command): Promise<string | true> {
+        for (const check of this.cogs[cmd.cog].checks) {
+            if (check.global || cmd.check.includes(check.name)) {
+                if (await check.check(msg, args, this))
+                    continue
+                else return check.name
+            }
+        }
+        return true
+    }
+
+    private async executeCommand(msg: Message, cmdName: string, args: string[]) {
         if (!cmdName) return false
         const cmd = this.getCommand(cmdName)
         if (!cmd) return false
+
+        try {
+            const check = await this.check(msg, args, cmd)
+            if (check !== true)
+                throw new Error("Check failed: " + check)
+        } catch (err) {
+            this.emit("checkError", msg, err)
+            return true
+        }
+
         try {
             await cmd.execute(msg, args, this)
         } catch (err) {
-            this.emit("commandError", msg, err)
+            this.emit("commandError", msg, cmdName, err)
         }
+
         return true
     }
 
