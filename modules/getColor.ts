@@ -11,6 +11,7 @@ async function getColorFromUrl(url: string, cacheId?: string) {
     }
 
     if (value) {
+        console.log("got from cache:", value)
         return value
     }
 
@@ -22,6 +23,7 @@ async function getColorFromUrl(url: string, cacheId?: string) {
         if (cacheId) {
             cache.set(cacheId, hexColors)
         }
+        console.log("got from req:", hexColors)
         return hexColors
     } catch {
         return undefined
