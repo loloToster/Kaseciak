@@ -1,9 +1,10 @@
-import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel } from "discord.js"
+import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel, HexColorString } from "discord.js"
 import { Queue, Player, PlayerSearchResult } from "discord-player"
 import { Bot } from "../modules/Bot"
 import MediaController from "../modules/MediaController"
 import ytMusic from "../modules/ytMusicToTracks"
 import { EmbedBook } from "../modules/EmbedBook"
+import getColor from "../modules/getColor"
 
 // https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
 function isValidUrl(s: string) {
@@ -115,30 +116,36 @@ export default {
 
                 if (playlist) {
                     const tracks = playlist.tracks
-                    await msg.channel.send({
-                        embeds: [
-                            new MessageEmbed()
-                                .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
-                                .setURL(playlist.url)
-                                .setThumbnail(playlist.thumbnail)
-                                .setDescription(playlist.author.name)
-                        ]
-                    })
+
+                    const emb = new MessageEmbed()
+                        .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
+                        .setURL(playlist.url)
+                        .setThumbnail(playlist.thumbnail)
+                        .setDescription(playlist.author.name)
+
+                    const color = await getColor(playlist.thumbnail, 500, playlist.id)
+                    if (color)
+                        emb.setColor(color as HexColorString)
+
+                    await msg.channel.send({ embeds: [emb] })
 
                     await queue.play(tracks.shift())
                     queue.addTracks(tracks)
 
                 } else if (searchResult?.tracks[0]) {
                     const track = searchResult.tracks[0]
-                    await msg.channel.send({
-                        embeds: [
-                            new MessageEmbed()
-                                .setTitle(`Dodaję **${track.title}**`)
-                                .setURL(track.url)
-                                .setThumbnail(track.thumbnail)
-                                .setDescription(track.author)
-                        ]
-                    })
+
+                    const emb = new MessageEmbed()
+                        .setTitle(`Dodaję **${track.title}**`)
+                        .setURL(track.url)
+                        .setThumbnail(track.thumbnail)
+                        .setDescription(track.author)
+
+                    const color = await getColor(track.thumbnail, 500, track.id)
+                    if (color)
+                        emb.setColor(color as HexColorString)
+
+                    await msg.channel.send({ embeds: [emb] })
 
                     if (playNext)
                         queue.insert(track)
