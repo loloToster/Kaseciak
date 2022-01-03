@@ -1,4 +1,4 @@
-import { TextChannel, MessageActionRow, MessageButton, Message, Interaction, MessageEmbed, ColorResolvable, HexColorString } from "discord.js"
+import { TextChannel, MessageActionRow, MessageButton, Message, Interaction, MessageEmbed, HexColorString } from "discord.js"
 import { Player, Queue, Track } from "discord-player"
 import getColor from "./getColor"
 
@@ -9,6 +9,8 @@ export default class MediaController {
     player: Player
     refreshInterval: number
     deleted: boolean
+
+    lastAction: string
 
     private currentMsg: Message | null
 
@@ -24,6 +26,8 @@ export default class MediaController {
         this.player = player
         this.refreshInterval = refreshInterval
         this.deleted = false
+
+        this.lastAction = ""
 
         this.currentMsg = null
 
@@ -81,6 +85,8 @@ export default class MediaController {
             default:
                 break
         }
+
+        this.lastAction = `${i.user.username}#${i.user.discriminator} kliknał: \`${i.component.emoji?.name}\``
 
         await this.refresh()
 
@@ -145,6 +151,7 @@ export default class MediaController {
         if (!queue) return
 
         this.currentMsg = await this.channel.send({
+            content: this.lastAction || undefined,
             embeds: [
                 await this._createEmbed(queue)
             ],
@@ -195,6 +202,7 @@ export default class MediaController {
 
         try {
             await this.currentMsg?.edit({
+                content: this.lastAction || undefined,
                 embeds: [
                     await this._createEmbed(queue)
                 ]
