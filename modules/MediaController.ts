@@ -121,7 +121,7 @@ export default class MediaController {
                     `${timestamps.current}┃${queue.createProgressBar({ length: 13 })}┃${timestamps.end}`,
                     false)
 
-            const color = await getColor(track.thumbnail, 500)
+            const color = await getColor(track.thumbnail, 500, track.id)
             if (color)
                 emb.setColor(color as HexColorString)
 

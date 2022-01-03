@@ -1,20 +1,36 @@
 import getColors from "get-image-colors"
 import axios from "axios"
+import NodeCache from "node-cache"
 
-async function getColorFromUrl(url: string) {
+const cache = new NodeCache({ stdTTL: 600 })
+
+async function getColorFromUrl(url: string, cacheId?: string) {
+    let value: string | undefined
+    if (cacheId) {
+        value = cache.get(cacheId)
+    }
+
+    if (value) {
+        return value
+    }
+
     try {
         const response = await axios.get(url, { responseType: "arraybuffer" })
         const buffer = Buffer.from(response.data, "utf-8")
         const colors = await getColors(buffer, response.headers["content-type"])
-        return colors[0].hex()
+        const hexColors = colors[0].hex()
+        if (cacheId) {
+            cache.set(cacheId, hexColors)
+        }
+        return hexColors
     } catch {
         return undefined
     }
 }
 
-export default (url: string, timeout: number): Promise<undefined | string> => {
+export default (url: string, timeout: number, cacheId?: string): Promise<undefined | string> => {
     let result: any = Promise.race([
-        getColorFromUrl(url),
+        getColorFromUrl(url, cacheId),
         new Promise((res) => setTimeout(res, timeout))
     ])
 
