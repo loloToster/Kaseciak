@@ -1,7 +1,7 @@
-import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel, HexColorString } from "discord.js"
+import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel, HexColorString, GuildMember } from "discord.js"
 import { Queue, Player, PlayerSearchResult } from "discord-player"
-import { Bot } from "../modules/Bot"
-import MediaController from "../modules/MediaController"
+import { Cog } from "../modules/Bot"
+import MediaController, { CustomMetadata } from "../modules/MediaController"
 import ytMusic from "../modules/ytMusicToTracks"
 import { EmbedBook } from "../modules/EmbedBook"
 import getColor from "../modules/getColor"
@@ -29,8 +29,8 @@ async function joinVC(msg: Message, queue: Queue) {
     return false
 }
 
-export default {
-    init: (bot: Bot) => {
+const cog: Cog = {
+    init(bot) {
         bot.on("voiceStateUpdate", async (oldState, newState) => {
             if (oldState.id != bot.user?.id || newState.channel)
                 return
@@ -38,20 +38,20 @@ export default {
             //@ts-ignore: Property 'player' does not exist on type 'Bot'.
             const player: Player = bot.player
 
-            const queue = player.getQueue(newState.guild.id)
+            const queue = player.getQueue<CustomMetadata>(newState.guild.id)
 
             if (!queue) return
             queue.destroy(true)
 
-            const metadata: any = queue.metadata
-            if (metadata.mc) await metadata.mc.delete()
+            if (queue.metadata?.mc)
+                await queue.metadata.mc.delete()
         })
     },
     checks: [
         {
             name: "isConnectedToVoiceChannel",
             global: true,
-            check(msg: Message, args: string[], bot: Bot) {
+            check(msg, args, bot) {
                 return Boolean(msg.member?.voice.channel)
             }
         }
@@ -62,7 +62,7 @@ export default {
             aliases: ["p"],
             description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę\nFlagi:\n`-n` dodaje piosenkę na początek playlisty\n`-nytm` Używa domyślnej wyszukiwarki a nie yt musicowej",
             usage: "play {piosenka|link do playlisty} {flagi}",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -108,8 +108,7 @@ export default {
 
                 if (!searchResult.tracks?.length)
                     searchResult = await player.search(query, {
-                        // @ts-ignore: Type 'null' is not assignable to type 'User'.
-                        requestedBy: msg.member
+                        requestedBy: msg.member as GuildMember
                     })
 
                 const playlist = searchResult.playlist
@@ -161,7 +160,7 @@ export default {
             aliases: ["s"],
             description: "Skipuje obecną lub kilka piosenek",
             usage: "skip {ilość:opcjonalne}",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -195,7 +194,7 @@ export default {
             name: "back",
             aliases: ["prev", "previous"],
             description: "Cofa do poprzedniej piosenki",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -210,7 +209,7 @@ export default {
         {
             name: "pause",
             description: "Pauzuje piosenkę",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -225,7 +224,7 @@ export default {
         {
             name: "resume",
             description: "Kontunuuje odtwarzanie piosenki",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -241,7 +240,7 @@ export default {
             name: "seek",
             description: "przewija piosenkę do konkretnego momentu",
             usage: "seek {sekundy}",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -265,7 +264,7 @@ export default {
             name: "clear",
             aliases: ["c"],
             description: "Czyści kolejkę",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -281,7 +280,7 @@ export default {
             name: "now",
             aliases: ["np"],
             description: "Wyświetla obecnie odtwarzaną piosenkę",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -315,7 +314,7 @@ export default {
             name: "queue",
             aliases: ["q"],
             description: "Wyświetla kolejkę",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -351,7 +350,7 @@ export default {
         {
             name: "shuffle",
             description: "Tasuje kolejkę",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
@@ -366,17 +365,17 @@ export default {
         {
             name: "stop",
             description: "Zatrzymuje bota i kasuje kolejke",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
                 const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
+                const queue = player.getQueue<CustomMetadata>(msg.guild.id)
 
                 queue.destroy(true)
 
-                const metadata: any = queue.metadata
-                if (metadata.mc) await metadata.mc.delete()
+                if (queue.metadata?.mc)
+                    await queue.metadata.mc.delete()
 
                 await msg.channel.send("Zatrzymuje i kasuje kolejke")
             }
@@ -384,24 +383,29 @@ export default {
         {
             name: "player",
             description: "Wysyła lub usuwa wiadomość będącą cały czas na dole kanału którą można obsługiwać podstawowe funkcje odtwarzania:\n🔀 odpowiednik komendy shuffle\n⏪ odpowiednik komendy back\n ⏯️ pauzuje lub wznawia odtwarzanie\n ⏩ odpowiednik komendy skip\n 🔄 odświeża informacje",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guild) return
 
                 //@ts-ignore: Property 'player' does not exist on type 'Bot'.
                 const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
+                const queue = player.getQueue<CustomMetadata>(msg.guild.id)
 
                 if (!queue)
                     return await msg.channel.send("kolejka nie istnieje")
 
-                const metadata: any = queue.metadata
+                if (!queue.metadata) return
 
-                if (metadata.mc) {
-                    await metadata.mc.delete()
-                    metadata.mc = undefined
-                } else
-                    metadata.mc = await new MediaController(msg.channel as TextChannel, player, 5000, true).create()
+                if (queue.metadata.mc)
+                    await queue.metadata.mc.delete()
+
+                queue.metadata.mc =
+                    queue.metadata.mc ?
+                        undefined :
+                        await new MediaController(msg.channel as TextChannel, player, 5000, true).create()
+
             }
         }
     ]
 }
+
+export default cog

@@ -8,9 +8,9 @@ export interface EmbedBookOptions {
 }
 
 export class EmbedBook {
-    currentIndex: number
-    pages: MessageEmbed[]
+    readonly pages: MessageEmbed[]
 
+    private currentIndex: number
     private message: Message | null
 
     constructor({ pages, channel, bot }: EmbedBookOptions) {
@@ -50,7 +50,7 @@ export class EmbedBook {
                         break
                 }
 
-                await i.deferUpdate()
+                await i.deferUpdate().catch(console.error)
             })
         })
     }

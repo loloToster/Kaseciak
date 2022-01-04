@@ -52,12 +52,12 @@ export interface CommandCheck {
 }
 
 export interface Command {
-    cog: string,
+    cog?: string,
     name: string,
-    check: string[],
-    aliases: string[],
-    description: string,
-    usage: string,
+    check?: string[],
+    aliases?: string[],
+    description?: string,
+    usage?: string,
     execute: (msg: Message, args: string[], bot: Bot) => any
 }
 
@@ -74,8 +74,8 @@ export interface BotOptions {
 }
 
 export class Bot extends Client {
-    cogs: { [name: string]: Cog }
-    loops: { [name: string]: Loop }
+    cogs: Record<string, Cog>
+    loops: Record<string, Loop>
     prefix: prefix
 
     constructor(options: ClientOptions, botOptions: BotOptions) {
@@ -129,7 +129,7 @@ export class Bot extends Client {
             for (const cmd of this.cogs[cog].commands) {
                 if (!cmd.aliases) continue
                 if (name == cmd.name || cmd.aliases.includes(name)) {
-                    return cmd
+                    return cmd as Required<Command>
                 }
             }
         }
@@ -140,7 +140,7 @@ export class Bot extends Client {
     /**
      * @returns true if Context passed checks. If it didn't it returns the name of the failed check
      */
-    async check(msg: Message, args: string[], cmd: Command): Promise<string | true> {
+    async check(msg: Message, args: string[], cmd: Required<Command>): Promise<string | true> {
         for (const check of this.cogs[cmd.cog].checks) {
             if (check.global || cmd.check.includes(check.name)) {
                 if (await check.check(msg, args, this))
@@ -175,6 +175,8 @@ export class Bot extends Client {
     }
 
     loop(name: string, action: Function, interval: number) {
-        this.loops[name] = new Loop(this, name, action, interval)
+        const loop = new Loop(this, name, action, interval)
+        this.loops[name] = loop
+        return loop
     }
 }

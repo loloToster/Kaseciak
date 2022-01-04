@@ -1,12 +1,11 @@
-import { Message } from "discord.js"
-import { Bot } from "../modules/Bot"
+import { Cog } from "../modules/Bot"
 
-export default {
+const cog: Cog = {
     checks: [
         {
             name: "isOwner",
             global: true,
-            async check(msg: Message, args: string[], bot: Bot) {
+            async check(msg, args, bot) {
                 return msg.author.id == process.env.OWNER
             }
         }
@@ -14,9 +13,11 @@ export default {
     commands: [
         {
             name: "exit",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 process.exit(0)
             }
         }
     ]
 }
+
+export default cog

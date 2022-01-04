@@ -1,5 +1,10 @@
+import { Bot } from "../modules/Bot"
+import { Intents, Message } from "discord.js"
+import { Player, Queue, Track } from "discord-player"
+import { readFile } from "fs/promises"
+
 // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
-function shuffle(array: Array<any>) {
+function shuffle<T>(array: T[]) {
     let currentIndex = array.length, randomIndex
 
     while (currentIndex != 0) {
@@ -12,11 +17,6 @@ function shuffle(array: Array<any>) {
 
     return array
 }
-
-import { Bot } from "../modules/Bot"
-import { Intents, Message } from "discord.js"
-import { Player, Queue } from "discord-player"
-import { readFile } from "fs/promises"
 
 const readJSON = async (p: string) => JSON.parse(await readFile(p, "utf-8"))
 
@@ -40,7 +40,7 @@ const bot = new Bot({
         Intents.FLAGS.GUILD_SCHEDULED_EVENTS,
     ]
 }, {
-    prefix: async (bot: Bot, msg: Message) =>
+    prefix: async (bot, msg) =>
         (await readJSON("./prefixes.json"))[msg.guildId ?? ""] || process.env.DEF_PREFIX
 })
 
@@ -49,12 +49,12 @@ bot.loop("status", async () => {
     const player: Player = bot.player
 
     const shuffledQueues: Queue[] = shuffle(Array.from(player.queues)
-        .map((q: any): Queue => q[1]))
+        .map((q: [unknown, Queue]) => q[1]))
 
     if (!shuffledQueues.length)
         return bot.user?.setActivity()
 
-    let track = null
+    let track: Track | null = null
     for (const queue of shuffledQueues) {
         if (queue.current) {
             track = queue.current
@@ -63,7 +63,11 @@ bot.loop("status", async () => {
     }
 
     if (track)
-        bot.user?.setActivity({ name: track.title, url: track.url, type: "LISTENING" })
+        bot.user?.setActivity({
+            name: track.title,
+            url: track.url,
+            type: "LISTENING"
+        })
     else
         bot.user?.setActivity()
 
@@ -90,6 +94,9 @@ bot.on("checkError", async (msg: Message, err: Error) => {
 bot.on("commandNotFound", async (msg: Message, command: string, args: string[]) => {
     await msg.channel.send(`Nie znam komendy ${command}`)
 })
+
+bot.on("error", err => console.log(err))
+bot.on("shardError", err => console.log(err))
 
 bot.on("commandError", async (msg: Message, command: string, err: Error) => {
     console.error(err)

@@ -4,6 +4,11 @@ import getColor from "./getColor"
 
 const DELETE_LOOPS = 3
 
+export interface CustomMetadata {
+    mc?: MediaController,
+    channel: TextChannel
+}
+
 export default class MediaController {
     channel: TextChannel
     player: Player
@@ -90,7 +95,7 @@ export default class MediaController {
 
         await this.refresh()
 
-        await i.deferUpdate()
+        await i.deferUpdate().catch(console.error)
     }
 
     async _resendHandler(msg: Message) {

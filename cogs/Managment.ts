@@ -1,21 +1,24 @@
-import { Message, MessageEmbed, TextChannel } from "discord.js"
+import { MessageEmbed, TextChannel } from "discord.js"
 import { existsSync } from "fs"
 import { readFile, writeFile } from "fs/promises"
-import { Bot } from "../modules/Bot"
+import { Cog } from "../modules/Bot"
 
 const readJSON = async (p: string) => JSON.parse(await readFile(p, "utf-8"))
 const writeJSON = async (p: string, obj: Object) => await writeFile(p, JSON.stringify(obj))
 
-export default {
-    _init: (bot: Bot) => {
+const cog: Cog = {
+    init(bot) {
         if (!existsSync("./prefixes.json"))
             writeJSON("./prefixes.json", {})
     },
     checks: [
         {
             name: "isAdmin",
-            check(msg: Message, args: string[], bot: Bot) {
-                return msg.member?.permissionsIn(msg.channel as TextChannel).has("ADMINISTRATOR")
+            check(msg, args, bot) {
+                return Boolean(
+                    msg.member?.permissionsIn(msg.channel as TextChannel)
+                        .has("ADMINISTRATOR")
+                )
             }
         }
     ],
@@ -23,7 +26,7 @@ export default {
         {
             name: "ping",
             description: "Sprawdza czy bot jest uruchomiony",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 await msg.channel.send(`Pong! \`${msg.createdTimestamp - Date.now()}ms\``)
             }
         },
@@ -32,7 +35,7 @@ export default {
             check: ["isAdmin"],
             description: "Zmienia prefix",
             usage: "prefix {nowy prefix}",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 if (!msg.guildId) return
 
                 let data = await readJSON("./prefixes.json")
@@ -56,7 +59,7 @@ export default {
             aliases: ["h"],
             description: "Wyświetla pomoc",
             usage: "help {komenda:opcjonalne}",
-            async execute(msg: Message, args: string[], bot: Bot) {
+            async execute(msg, args, bot) {
                 let emb = new MessageEmbed()
 
                 const prefix = typeof bot.prefix == "function" ?
@@ -103,3 +106,5 @@ export default {
         }
     ]
 }
+
+export default cog
