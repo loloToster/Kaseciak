@@ -63,8 +63,13 @@ export interface Command {
 
 export interface Cog {
     init?: (bot: Bot) => any,
-    checks: CommandCheck[]
-    commands: Command[]
+    checks?: CommandCheck[]
+    commands?: Command[]
+}
+
+export interface fullCog {
+    checks: CommandCheck[],
+    commands: Required<Command>[]
 }
 
 type prefix = string | ((bot: Bot, msg: Message) => Promise<string> | string)
@@ -74,7 +79,7 @@ export interface BotOptions {
 }
 
 export class Bot extends Client {
-    cogs: Record<string, Cog>
+    cogs: Record<string, fullCog>
     loops: Record<string, Loop>
     prefix: prefix
 
@@ -103,23 +108,35 @@ export class Bot extends Client {
         })
     }
 
+    private fillCommand(cmd: Command, cogName: string): Required<Command> {
+        return {
+            name: cmd.name,
+            cog: cogName,
+            check: cmd.check ?? [],
+            aliases: cmd.aliases ?? [],
+            description: cmd.description ?? "",
+            usage: cmd.usage ?? "",
+            execute: cmd.execute
+        }
+    }
+
     loadCogsFromDir(dir: string, lang: "ts" | "js") {
         readdirSync(dir).forEach(file => {
             if (!file.endsWith("." + lang)) return
+
             let cogName = file.slice(0, -3)
             let module = require(`${dir}/${cogName}`)
             let cog: Cog = lang === "ts" ? module.default : module
-            let commands: Command[] = []
-            for (const cmd of cog.commands) {
-                if (typeof cmd.execute != "function") continue
-                cmd.cog = cogName
-                cmd.check = cmd.check ?? []
-                cmd.aliases = cmd.aliases ?? []
-                cmd.description = cmd.description ?? ""
-                cmd.usage = cmd.usage ?? ""
-                commands.push(cmd)
-            }
+
+            let commands: Required<Command>[] = []
+            if (cog.commands)
+                for (const cmd of cog.commands) {
+                    if (typeof cmd.execute != "function") continue
+                    commands.push(this.fillCommand(cmd, cogName))
+                }
+
             if (typeof cog.init == "function") cog.init(this)
+
             this.cogs[cogName] = { commands: commands, checks: cog.checks ?? [] }
         })
     }
@@ -129,13 +146,12 @@ export class Bot extends Client {
             for (const cmd of this.cogs[cog].commands) {
                 if (!cmd.aliases) continue
                 if (name == cmd.name || cmd.aliases.includes(name)) {
-                    return cmd as Required<Command>
+                    return cmd
                 }
             }
         }
         return false
     }
-
 
     /**
      * @returns true if Context passed checks. If it didn't it returns the name of the failed check
