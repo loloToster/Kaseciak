@@ -27,7 +27,7 @@ const cog: Cog = {
             name: "ping",
             description: "Sprawdza czy bot jest uruchomiony",
             async execute(msg, args, bot) {
-                await msg.channel.send(`Pong! \`${msg.createdTimestamp - Date.now()}ms\``)
+                await msg.channel.send(`Pong! \`${bot.ws.ping}ms\``)
             }
         },
         {
