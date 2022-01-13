@@ -128,7 +128,7 @@ export default class MediaController {
             emb.setTitle(`**${track.title}**`)
                 .setURL(track.url)
                 .setThumbnail(track.thumbnail)
-                .addField(track.author,
+                .addField(track.author || "\u200b",
                     `${timestamps.current}┃${queue.createProgressBar({ length: 13 })}┃${timestamps.end}`,
                     false)
 
