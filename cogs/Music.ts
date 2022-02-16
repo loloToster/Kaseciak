@@ -5,6 +5,8 @@ import MediaController, { CustomMetadata } from "../modules/MediaController"
 import ytMusic from "../modules/ytMusicToTracks"
 import { EmbedBook } from "../modules/EmbedBook"
 import getColor from "../modules/getColor"
+// @ts-ignore: Could not find a declaration file for module 'lyrics-finder'
+import getLyrics from "lyrics-finder"
 
 // https://stackoverflow.com/questions/5717093/check-if-a-javascript-string-is-a-url
 function isValidUrl(s: string) {
@@ -389,8 +391,37 @@ const cog: RawCog = {
                     await new MediaController(ctx.channel as TextChannel, player, 5000, true).create()
 
         }
-    }
+    },
+    lyrisc: {
+        aliases: ["l", "tekst"],
+        description: "Wyszukuje tekst piosenki",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
+            let query = args.join(" ")
+
+            if (!query.trim()) {
+                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+                const player: Player = ctx.bot.player
+                const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
+                if (!queue?.current)
+                    return await ctx.send("Nic nie jest odtwarzane")
+                query = `${queue.current.title} ${queue.current.author}`
+            }
+
+            let lyrics: string | undefined = await getLyrics(query)
+
+            if (!lyrics) return await ctx.send("Nie znalazłem tekstu")
+
+            await ctx.send({
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle("Wyniki zapytania: " + query)
+                        .setDescription(lyrics)
+                ]
+            })
+        }
+    }
 }
 
 export function setup(bot: Bot) {
