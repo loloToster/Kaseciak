@@ -1,5 +1,5 @@
 import { Player, Queue } from "discord-player"
-import { Bot } from "../modules/Bot"
+import { Bot } from "discord.js-ext"
 import { CustomMetadata } from "../modules/MediaController"
 
 export default (bot: Bot) => {

@@ -1,23 +1,20 @@
-import { Cog } from "../modules/Bot"
+import { Bot, RawCog } from "discord.js-ext"
 
-const cog: Cog = {
-    checks: [
-        {
-            name: "isOwner",
-            global: true,
-            async check(msg, args, bot) {
-                return msg.author.id == process.env.OWNER
-            }
+const cog: RawCog = {
+    name: "Developer",
+    isOwner: {
+        global: true,
+        async check(ctx, args) {
+            return ctx.author.id == process.env.OWNER
         }
-    ],
-    commands: [
-        {
-            name: "exit",
-            async execute(msg, args, bot) {
-                process.exit(0)
-            }
+    },
+    exit: {
+        async command(ctx, args) {
+            process.exit(0)
         }
-    ]
+    }
 }
 
-export default cog
+export function setup(bot: Bot) {
+    bot.addCog(cog)
+}

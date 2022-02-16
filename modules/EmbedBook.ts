@@ -1,5 +1,5 @@
 import { Message, MessageEmbed, TextChannel, MessageActionRow, MessageButton, MessageButtonOptions } from "discord.js"
-import { Bot } from "./Bot"
+import { Bot } from "discord.js-ext"
 
 export interface EmbedBookOptions {
     pages: MessageEmbed[],

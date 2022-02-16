@@ -1,4 +1,4 @@
-import { Bot } from "../modules/Bot"
+import { Bot } from "discord.js-ext"
 import { Intents, Message } from "discord.js"
 import { Player, Queue, Track } from "discord-player"
 import { readFile } from "fs/promises"
@@ -38,13 +38,12 @@ const bot = new Bot({
         Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
         Intents.FLAGS.DIRECT_MESSAGE_TYPING,
         Intents.FLAGS.GUILD_SCHEDULED_EVENTS,
-    ]
-}, {
+    ],
     prefix: async (bot, msg) =>
         (await readJSON("./prefixes.json"))[msg.guildId ?? ""] || process.env.DEF_PREFIX
 })
 
-bot.loop("status", async () => {
+let statusLoop = bot.loop(async () => {
     //@ts-ignore: Property 'player' does not exist on type 'Bot'.
     const player: Player = bot.player
 
@@ -71,22 +70,23 @@ bot.loop("status", async () => {
     else
         bot.user?.setActivity()
 
-}, 20000)
+}, { seconds: 20 })
 
-bot.on("loopError", (name: string, err: Error) => {
-    console.error(name + ":", err)
+statusLoop.on("error", err => {
+    console.error("statusLoop error:", err)
 })
 
 bot.once("ready", () => {
     console.log("Ready!")
-    bot.loops.status.start()
+    statusLoop.start()
 })
 
-bot.on("checkError", async (msg: Message, err: Error) => {
+bot.on("checkError", async (ctx, err) => {
+    if (!(err instanceof Error)) return
     if (err.message.includes("isConnectedToVoiceChannel")) {
-        await msg.channel.send("Musisz być na kanale głosowym aby użyć tej komendy")
+        await ctx.send("Musisz być na kanale głosowym aby użyć tej komendy")
     } else if (err.message.includes("isAdmin")) {
-        await msg.channel.send("Musisz być administratorem aby użyć tej komendy")
+        await ctx.send("Musisz być administratorem aby użyć tej komendy")
     } else
         console.log("checkError: " + err.message)
 })
@@ -98,7 +98,7 @@ bot.on("commandNotFound", async (msg: Message, command: string, args: string[]) 
 bot.on("error", err => console.log(err))
 bot.on("shardError", err => console.log(err))
 
-bot.on("commandError", async (msg: Message, command: string, err: Error) => {
+bot.on("commandError", async (ctx, err) => {
     console.error(err)
 })
 

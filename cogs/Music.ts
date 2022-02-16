@@ -1,6 +1,6 @@
 import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel, HexColorString, GuildMember } from "discord.js"
 import { Queue, Player, PlayerSearchResult } from "discord-player"
-import { Cog } from "../modules/Bot"
+import { Bot, RawCog } from "discord.js-ext"
 import MediaController, { CustomMetadata } from "../modules/MediaController"
 import ytMusic from "../modules/ytMusicToTracks"
 import { EmbedBook } from "../modules/EmbedBook"
@@ -29,14 +29,15 @@ async function joinVC(msg: Message, queue: Queue) {
     return false
 }
 
-const cog: Cog = {
+const cog: RawCog = {
+    name: "Music",
     init(bot) {
         bot.on("voiceStateUpdate", async (oldState, newState) => {
             if (oldState.id != bot.user?.id || newState.channel)
                 return
 
             //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = bot.player
+            const player: Player = ctx.bot.player
 
             const queue = player.getQueue<CustomMetadata>(newState.guild.id)
 
@@ -47,365 +48,351 @@ const cog: Cog = {
                 await queue.metadata.mc.delete()
         })
     },
-    checks: [
-        {
-            name: "isConnectedToVoiceChannel",
-            global: true,
-            check(msg, args, bot) {
-                return Boolean(msg.member?.voice.channel)
-            }
+    isConnectedToVoiceChannel: {
+        global: true,
+        check(ctx, args) {
+            return Boolean(ctx.message.member?.voice.channel)
         }
-    ],
-    commands: [
-        {
-            name: "play",
-            aliases: ["p"],
-            description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę\nFlagi:\n`-n` dodaje piosenkę na początek playlisty\n`-nytm` Używa domyślnej wyszukiwarki a nie yt musicowej",
-            usage: "play {piosenka|link do playlisty} {flagi}",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
+    },
+    play: {
+        aliases: ["p"],
+        description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę\nFlagi:\n`-n` dodaje piosenkę na początek playlisty\n`-nytm` Używa domyślnej wyszukiwarki a nie yt musicowej",
+        usage: "play {piosenka|link do playlisty} {flagi}",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
 
-                const queue = player.createQueue(msg.guild, {
-                    metadata: {
-                        channel: msg.channel
-                    },
-                    leaveOnEnd: false,
-                    leaveOnStop: false,
-                    bufferingTimeout: 500
+            const queue = player.createQueue(ctx.message.guild, {
+                metadata: {
+                    channel: ctx.channel
+                },
+                leaveOnEnd: false,
+                leaveOnStop: false,
+                bufferingTimeout: 500
+            })
+
+            if (await joinVC(ctx.message, queue) == false)
+                return
+
+            if (!args[0]) {
+                if (!queue.playing)
+                    await queue.play()
+                return
+            }
+
+            let playNext = false
+            let noYTmusic = false
+
+            // process flags:
+            for (let i = args.length - 1; i >= 0; i--) {
+                const arg = args[i]
+                if (arg.startsWith("-")) {
+                    const flag = args.pop()?.substring(1)
+                    if (flag == "n") playNext = true
+                    else if (flag == "nytm") noYTmusic = true
+                } else break
+            }
+
+            let query = args.join(" ")
+
+            let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
+
+            if (!isValidUrl(query) && !noYTmusic)
+                searchResult = await ytMusic(query, player, ctx.message.member as UserResolvable)
+
+            if (!searchResult.tracks?.length)
+                searchResult = await player.search(query, {
+                    requestedBy: ctx.message.member as GuildMember
                 })
 
-                if (await joinVC(msg, queue) == false)
-                    return
+            const playlist = searchResult.playlist
 
-                if (!args[0]) {
-                    if (!queue.playing)
-                        await queue.play()
+            if (playlist) {
+                const tracks = playlist.tracks
+
+                const emb = new MessageEmbed()
+                    .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
+                    .setURL(playlist.url)
+                    .setThumbnail(playlist.thumbnail)
+                    .setDescription(playlist.author.name)
+
+                const color = await getColor(playlist.thumbnail, 500, playlist.id)
+                if (color)
+                    emb.setColor(color as HexColorString)
+
+                await ctx.send({ embeds: [emb] })
+
+                await queue.play(tracks.shift())
+                queue.addTracks(tracks)
+
+            } else if (searchResult?.tracks[0]) {
+                const track = searchResult.tracks[0]
+
+                const emb = new MessageEmbed()
+                    .setTitle(`Dodaję **${track.title}**`)
+                    .setURL(track.url)
+                    .setThumbnail(track.thumbnail)
+                    .setDescription(track.author)
+
+                const color = await getColor(track.thumbnail, 500, track.id)
+                if (color)
+                    emb.setColor(color as HexColorString)
+
+                await ctx.send({ embeds: [emb] })
+
+                if (playNext)
+                    queue.insert(track)
+                else
+                    await queue.play(track)
+
+            } else
+                await ctx.send(`❌ | Nie znalazłem piosenki **${query}**!`)
+        }
+    },
+    skip: {
+        aliases: ["s"],
+        description: "Skipuje obecną lub kilka piosenek",
+        usage: "skip {ilość:opcjonalne}",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
+
+            if (!queue || !queue.playing)
+                return ctx.send(`Nie ma czego skipnąć`)
+
+            if (args[0]) {
+                let num = parseInt(args[0])
+                if (typeof num == "number" && num > 1) {
+                    if (num > queue.tracks.length)
+                        num = queue.tracks.length
+                    queue.skipTo(num - 1)
+                    await ctx.send(`Skipuje **${num}** piosenek`)
                     return
                 }
+            }
 
-                let playNext = false
-                let noYTmusic = false
+            const success = queue.skip()
 
-                // process flags:
-                for (let i = args.length - 1; i >= 0; i--) {
-                    const arg = args[i]
-                    if (arg.startsWith("-")) {
-                        const flag = args.pop()?.substring(1)
-                        if (flag == "n") playNext = true
-                        else if (flag == "nytm") noYTmusic = true
-                    } else break
-                }
+            await ctx.send(
+                success ?
+                    `Skipuje **${queue.current.title}**` :
+                    `Coś się pokićkało`
+            )
+        }
+    },
+    back: {
+        aliases: ["prev", "previous"],
+        description: "Cofa do poprzedniej piosenki",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
-                let query = args.join(" ")
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
 
-                let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
+            await queue.back()
 
-                if (!isValidUrl(query) && !noYTmusic)
-                    searchResult = await ytMusic(query, player, msg.member as UserResolvable)
+            await ctx.send("Cofam")
+        }
+    },
+    pause: {
+        description: "Pauzuje piosenkę",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
-                if (!searchResult.tracks?.length)
-                    searchResult = await player.search(query, {
-                        requestedBy: msg.member as GuildMember
-                    })
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
 
-                const playlist = searchResult.playlist
+            queue.setPaused(true)
 
-                if (playlist) {
-                    const tracks = playlist.tracks
+            await ctx.send("Pauzuję")
+        }
+    },
+    resume: {
+        description: "Kontunuuje odtwarzanie piosenki",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
-                    const emb = new MessageEmbed()
-                        .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
-                        .setURL(playlist.url)
-                        .setThumbnail(playlist.thumbnail)
-                        .setDescription(playlist.author.name)
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
 
-                    const color = await getColor(playlist.thumbnail, 500, playlist.id)
-                    if (color)
-                        emb.setColor(color as HexColorString)
+            queue.setPaused(false)
 
-                    await msg.channel.send({ embeds: [emb] })
+            await ctx.send("Wznawiam")
+        }
+    },
+    seek: {
+        description: "przewija piosenkę do konkretnego momentu",
+        usage: "seek {sekundy}",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
-                    await queue.play(tracks.shift())
-                    queue.addTracks(tracks)
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
 
-                } else if (searchResult?.tracks[0]) {
-                    const track = searchResult.tracks[0]
+            let secs = parseInt(args[0])
 
-                    const emb = new MessageEmbed()
-                        .setTitle(`Dodaję **${track.title}**`)
+            if (typeof secs != "number")
+                return await ctx.send("Podaj sekundy")
+
+            let secsInMs = secs * 1000
+
+            if (await queue.seek(secsInMs))
+                await ctx.send(`Przewijam do ${secs} sekund`)
+            else
+                await ctx.send("Nie zdołałem przewinąć")
+        }
+    },
+    clear: {
+        aliases: ["c"],
+        description: "Czyści kolejkę",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
+
+            queue.clear()
+
+            await ctx.send("Kolejka wyczyszczona 🗑️")
+        }
+    },
+    now: {
+        aliases: ["np"],
+        description: "Wyświetla obecnie odtwarzaną piosenkę",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
+
+            if (!queue?.current)
+                return await ctx.send("Nic nie jest odtwarzane")
+
+            const track = queue.current
+
+            const timestamps = queue.getPlayerTimestamp()
+
+            await ctx.send({
+                embeds: [
+                    new MessageEmbed()
+                        .setTitle(`**${track.title}**`)
                         .setURL(track.url)
                         .setThumbnail(track.thumbnail)
                         .setDescription(track.author)
+                        .addField(
+                            "\u2800",
+                            `${timestamps.current}┃${queue.createProgressBar({ length: 15 })}┃${timestamps.end}`,
+                            true
+                        )
+                ]
+            })
+        }
+    },
+    queue: {
+        aliases: ["q"],
+        description: "Wyświetla kolejkę",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
 
-                    const color = await getColor(track.thumbnail, 500, track.id)
-                    if (color)
-                        emb.setColor(color as HexColorString)
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
 
-                    await msg.channel.send({ embeds: [emb] })
+            let embeds: MessageEmbed[] = []
 
-                    if (playNext)
-                        queue.insert(track)
-                    else
-                        await queue.play(track)
-
-                } else
-                    await msg.channel.send(`❌ | Nie znalazłem piosenki **${query}**!`)
-            }
-        },
-        {
-            name: "skip",
-            aliases: ["s"],
-            description: "Skipuje obecną lub kilka piosenek",
-            usage: "skip {ilość:opcjonalne}",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                if (!queue || !queue.playing)
-                    return msg.channel.send(`Nie ma czego skipnąć`)
-
-                if (args[0]) {
-                    let num = parseInt(args[0])
-                    if (typeof num == "number" && num > 1) {
-                        if (num > queue.tracks.length)
-                            num = queue.tracks.length
-                        queue.skipTo(num - 1)
-                        await msg.channel.send(`Skipuje **${num}** piosenek`)
-                        return
-                    }
-                }
-
-                const success = queue.skip()
-
-                await msg.channel.send(
-                    success ?
-                        `Skipuje **${queue.current.title}**` :
-                        `Coś się pokićkało`
+            const chunkSize = 10
+            const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
+            for (let i = 0, chunkNumber = 0; i < queue.tracks.length; i += chunkSize, chunkNumber++) {
+                const chunk = queue.tracks.slice(i, i + chunkSize)
+                embeds.push(new MessageEmbed()
+                    .setDescription(
+                        chunk.map(
+                            (track, j) =>
+                                `${chunkNumber * chunkSize + j + 1}. ${track.title} - ${track.author} \`${track.duration}\``
+                        ).join("\n")
+                    ).setFooter({ text: `Strona ${chunkNumber + 1}/${numberOfChunks}` })
                 )
             }
-        },
-        {
-            name: "back",
-            aliases: ["prev", "previous"],
-            description: "Cofa do poprzedniej piosenki",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
 
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
+            if (!embeds.length)
+                return await ctx.send("Kolejka jest pusta")
 
-                await queue.back()
-
-                await msg.channel.send("Cofam")
-            }
-        },
-        {
-            name: "pause",
-            description: "Pauzuje piosenkę",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                queue.setPaused(true)
-
-                await msg.channel.send("Pauzuję")
-            }
-        },
-        {
-            name: "resume",
-            description: "Kontunuuje odtwarzanie piosenki",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                queue.setPaused(false)
-
-                await msg.channel.send("Wznawiam")
-            }
-        },
-        {
-            name: "seek",
-            description: "przewija piosenkę do konkretnego momentu",
-            usage: "seek {sekundy}",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                let secs = parseInt(args[0])
-
-                if (typeof secs != "number")
-                    return await msg.channel.send("Podaj sekundy")
-
-                let secsInMs = secs * 1000
-
-                if (await queue.seek(secsInMs))
-                    await msg.channel.send(`Przewijam do ${secs} sekund`)
-                else
-                    await msg.channel.send("Nie zdołałem przewinąć")
-            }
-        },
-        {
-            name: "clear",
-            aliases: ["c"],
-            description: "Czyści kolejkę",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                queue.clear()
-
-                await msg.channel.send("Kolejka wyczyszczona 🗑️")
-            }
-        },
-        {
-            name: "now",
-            aliases: ["np"],
-            description: "Wyświetla obecnie odtwarzaną piosenkę",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                if (!queue?.current)
-                    return await msg.channel.send("Nic nie jest odtwarzane")
-
-                const track = queue.current
-
-                const timestamps = queue.getPlayerTimestamp()
-
-                await msg.channel.send({
-                    embeds: [
-                        new MessageEmbed()
-                            .setTitle(`**${track.title}**`)
-                            .setURL(track.url)
-                            .setThumbnail(track.thumbnail)
-                            .setDescription(track.author)
-                            .addField(
-                                "\u2800",
-                                `${timestamps.current}┃${queue.createProgressBar({ length: 15 })}┃${timestamps.end}`,
-                                true
-                            )
-                    ]
-                })
-            }
-        },
-        {
-            name: "queue",
-            aliases: ["q"],
-            description: "Wyświetla kolejkę",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                let embeds: MessageEmbed[] = []
-
-                const chunkSize = 10
-                const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
-                for (let i = 0, chunkNumber = 0; i < queue.tracks.length; i += chunkSize, chunkNumber++) {
-                    const chunk = queue.tracks.slice(i, i + chunkSize)
-                    embeds.push(new MessageEmbed()
-                        .setDescription(
-                            chunk.map(
-                                (track, j) =>
-                                    `${chunkNumber * chunkSize + j + 1}. ${track.title} - ${track.author} \`${track.duration}\``
-                            ).join("\n")
-                        ).setFooter({ text: `Strona ${chunkNumber + 1}/${numberOfChunks}` })
-                    )
-                }
-
-                if (!embeds.length)
-                    return await msg.channel.send("Kolejka jest pusta")
-
-                new EmbedBook({
-                    pages: embeds,
-                    channel: msg.channel as TextChannel,
-                    bot: bot
-                })
-            }
-        },
-        {
-            name: "shuffle",
-            description: "Tasuje kolejkę",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue(msg.guild.id)
-
-                queue.shuffle()
-
-                await msg.channel.send("Zshufflowałem piosenki 🔀")
-            }
-        },
-        {
-            name: "stop",
-            description: "Zatrzymuje bota i kasuje kolejke",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue<CustomMetadata>(msg.guild.id)
-
-                queue.destroy(true)
-
-                if (queue.metadata?.mc)
-                    await queue.metadata.mc.delete()
-
-                await msg.channel.send("Zatrzymuje i kasuje kolejke")
-            }
-        },
-        {
-            name: "player",
-            description: "Wysyła lub usuwa wiadomość będącą cały czas na dole kanału którą można obsługiwać podstawowe funkcje odtwarzania:\n🔀 odpowiednik komendy shuffle\n⏪ odpowiednik komendy back\n ⏯️ pauzuje lub wznawia odtwarzanie\n ⏩ odpowiednik komendy skip\n 🔄 odświeża informacje",
-            async execute(msg, args, bot) {
-                if (!msg.guild) return
-
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = bot.player
-                const queue = player.getQueue<CustomMetadata>(msg.guild.id)
-
-                if (!queue)
-                    return await msg.channel.send("kolejka nie istnieje")
-
-                if (!queue.metadata) return
-
-                if (queue.metadata.mc)
-                    await queue.metadata.mc.delete()
-
-                queue.metadata.mc =
-                    queue.metadata.mc ?
-                        undefined :
-                        await new MediaController(msg.channel as TextChannel, player, 5000, true).create()
-
-            }
+            new EmbedBook({
+                pages: embeds,
+                channel: ctx.channel as TextChannel,
+                bot: ctx.bot
+            })
         }
-    ]
+    },
+    shuffle: {
+        description: "Tasuje kolejkę",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue(ctx.message.guild.id)
+
+            queue.shuffle()
+
+            await ctx.send("Zshufflowałem piosenki 🔀")
+        }
+    },
+    stop: {
+        description: "Zatrzymuje bota i kasuje kolejke",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
+
+            queue.destroy(true)
+
+            if (queue.metadata?.mc)
+                await queue.metadata.mc.delete()
+
+            await ctx.send("Zatrzymuje i kasuje kolejke")
+        }
+    },
+    player: {
+        description: "Wysyła lub usuwa wiadomość będącą cały czas na dole kanału którą można obsługiwać podstawowe funkcje odtwarzania:\n🔀 odpowiednik komendy shuffle\n⏪ odpowiednik komendy back\n ⏯️ pauzuje lub wznawia odtwarzanie\n ⏩ odpowiednik komendy skip\n 🔄 odświeża informacje",
+        async command(ctx, args) {
+            if (!ctx.message.guild) return
+
+            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
+            const player: Player = ctx.bot.player
+            const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
+
+            if (!queue)
+                return await ctx.send("kolejka nie istnieje")
+
+            if (!queue.metadata) return
+
+            if (queue.metadata.mc)
+                await queue.metadata.mc.delete()
+
+            queue.metadata.mc =
+                queue.metadata.mc ?
+                    undefined :
+                    await new MediaController(ctx.channel as TextChannel, player, 5000, true).create()
+
+        }
+    }
+
 }
 
-export default cog
+export function setup(bot: Bot) {
+    bot.addCog(cog)
+}

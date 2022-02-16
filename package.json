@@ -16,6 +16,7 @@
     "axios": "^0.24.0",
     "discord-player": "^5.2.0",
     "discord.js": "^13.4.0",
+    "discord.js-ext": "github:loloToster/discord.js-ext",
     "dotenv": "^10.0.0",
     "ffmpeg-static": "^4.4.0",
     "get-image-colors": "^4.0.0",
@@ -23,7 +24,8 @@
     "node-youtube-music": "^0.7.0",
     "opusscript": "^0.0.8",
     "patch-package": "^6.4.7",
-    "ts-node": "^10.4.0"
+    "ts-node": "^10.4.0",
+    "ytdl-core": "^4.10.1"
   },
   "devDependencies": {
     "@types/get-image-colors": "^4.0.1"
