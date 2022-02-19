@@ -1,4 +1,5 @@
 import { Bot, RawCog } from "discord.js-ext"
+import { Kaseciak } from "../main"
 
 const cog: RawCog = {
     name: "Developer",
@@ -10,7 +11,17 @@ const cog: RawCog = {
     },
     exit: {
         async command(ctx, args) {
+            try {
+                await ctx.send("Exiting...")
+            } catch { /* exit no matter what */ }
             process.exit(0)
+        }
+    },
+    reloadDb: {
+        async command(ctx, args) {
+            let bot = ctx.bot as Kaseciak
+            bot.db.reload()
+            await ctx.send("Db reloaded")
         }
     }
 }

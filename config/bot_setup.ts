@@ -1,7 +1,7 @@
 import { Bot } from "discord.js-ext"
 import { Intents, Message } from "discord.js"
 import { Player, Queue, Track } from "discord-player"
-import { readFile } from "fs/promises"
+import { Kaseciak } from "../main"
 
 // https://stackoverflow.com/questions/2450954/how-to-randomize-shuffle-a-javascript-array
 function shuffle<T>(array: T[]) {
@@ -17,8 +17,6 @@ function shuffle<T>(array: T[]) {
 
     return array
 }
-
-const readJSON = async (p: string) => JSON.parse(await readFile(p, "utf-8"))
 
 const bot = new Bot({
     intents: [
@@ -39,8 +37,11 @@ const bot = new Bot({
         Intents.FLAGS.DIRECT_MESSAGE_TYPING,
         Intents.FLAGS.GUILD_SCHEDULED_EVENTS,
     ],
-    prefix: async (bot, msg) =>
-        (await readJSON("./prefixes.json"))[msg.guildId ?? ""] || process.env.DEF_PREFIX
+    prefix: async (bot, msg) => {
+        let b = bot as Kaseciak
+        let evaluatedPrefix = b.db.getData("/guilds")[msg.guildId ?? ""]?.prefix || process.env.DEF_PREFIX
+        return evaluatedPrefix
+    }
 })
 
 let statusLoop = bot.loop(async () => {

@@ -1,6 +1,7 @@
 import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel, HexColorString, GuildMember } from "discord.js"
 import { Queue, Player, PlayerSearchResult } from "discord-player"
 import { Bot, RawCog } from "discord.js-ext"
+import { Kaseciak } from "../main"
 import MediaController, { CustomMetadata } from "../modules/MediaController"
 import ytMusic from "../modules/ytMusicToTracks"
 import { EmbedBook } from "../modules/EmbedBook"
@@ -38,8 +39,7 @@ const cog: RawCog = {
             if (oldState.id != bot.user?.id || newState.channel)
                 return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (bot as Kaseciak).player
 
             const queue = player.getQueue<CustomMetadata>(newState.guild.id)
 
@@ -63,8 +63,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
 
             const queue = player.createQueue(ctx.message.guild, {
                 metadata: {
@@ -160,8 +159,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             if (!queue || !queue.playing)
@@ -193,8 +191,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             await queue.back()
@@ -207,8 +204,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             queue.setPaused(true)
@@ -221,8 +217,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             queue.setPaused(false)
@@ -236,8 +231,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             let secs = parseInt(args[0])
@@ -259,8 +253,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             queue.clear()
@@ -274,8 +267,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             if (!queue?.current)
@@ -307,8 +299,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             let embeds: MessageEmbed[] = []
@@ -342,8 +333,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
             queue.shuffle()
@@ -356,8 +346,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
 
             queue.destroy(true)
@@ -373,8 +362,7 @@ const cog: RawCog = {
         async command(ctx, args) {
             if (!ctx.message.guild) return
 
-            //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-            const player: Player = ctx.bot.player
+            const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
 
             if (!queue)
@@ -401,8 +389,7 @@ const cog: RawCog = {
             let query = args.join(" ")
 
             if (!query.trim()) {
-                //@ts-ignore: Property 'player' does not exist on type 'Bot'.
-                const player: Player = ctx.bot.player
+                const player = (ctx.bot as Kaseciak).player
                 const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
                 if (!queue?.current)
                     return await ctx.send("Nic nie jest odtwarzane")

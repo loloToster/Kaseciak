@@ -4,11 +4,22 @@ import { readdirSync } from "fs"
 import dotenv from "dotenv"
 dotenv.config()
 
-import bot from "./config/bot_setup"
+import rawBot from "./config/bot_setup"
 import playerSetup from "./config/player_setup"
+import db from "./config/db_setup"
 
-//@ts-ignore: Property 'player' does not exist on type 'Bot'.
+import { Bot } from "discord.js-ext"
+import { Player } from "discord-player"
+import { JsonDB } from "node-json-db"
+
+export interface Kaseciak extends Bot {
+    player: Player,
+    db: JsonDB
+}
+
+const bot = rawBot as Kaseciak
 bot.player = playerSetup(bot)
+bot.db = db
 
 let cogsDir = __dirname + "/cogs"
 

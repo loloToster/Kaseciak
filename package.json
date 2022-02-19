@@ -22,6 +22,7 @@
     "get-image-colors": "^4.0.0",
     "lyrics-finder": "^21.7.0",
     "node-cache": "^5.1.2",
+    "node-json-db": "^1.4.1",
     "node-youtube-music": "^0.7.0",
     "opusscript": "^0.0.8",
     "patch-package": "^6.4.7",

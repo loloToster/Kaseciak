@@ -1,17 +1,9 @@
 import { MessageEmbed, TextChannel } from "discord.js"
-import { existsSync } from "fs"
-import { readFile, writeFile } from "fs/promises"
 import { Bot, RawCog } from "discord.js-ext"
-
-const readJSON = async (p: string) => JSON.parse(await readFile(p, "utf-8"))
-const writeJSON = async (p: string, obj: Object) => await writeFile(p, JSON.stringify(obj))
+import { Kaseciak } from "../main"
 
 const cog: RawCog = {
     name: "Managment",
-    init(bot) {
-        if (!existsSync("./prefixes.json"))
-            writeJSON("./prefixes.json", {})
-    },
     isAdmin: {
         check(ctx, args) {
             return Boolean(
@@ -31,12 +23,12 @@ const cog: RawCog = {
         description: "Zmienia prefix",
         usage: "prefix {nowy prefix}",
         async command(ctx, args) {
-            if (!ctx.message.guildId) return
+            if (!ctx.guild) return
 
-            let data = await readJSON("./prefixes.json")
+            let bot = ctx.bot as Kaseciak
 
             if (!args[0]) {
-                let currentPrefix = data[ctx.message.guildId] || process.env.DEF_PREFIX
+                let currentPrefix = bot.db.getData("/guilds")[ctx.guild.id]?.prefix || process.env.DEF_PREFIX
                 return await ctx.send(`Aktualny prefix to: \`${currentPrefix}\``)
             }
 
@@ -44,8 +36,7 @@ const cog: RawCog = {
             if (newPrefix.length > 10)
                 return await ctx.send("Prefix nie może mieć więcej niż 10 znaków")
 
-            data[ctx.message.guildId] = newPrefix
-            await writeJSON("./prefixes.json", data)
+            bot.db.push("/guilds", { [ctx.guild.id]: { prefix: newPrefix } })
             await ctx.send(`Nowy prefix to: \`${newPrefix}\``)
         }
     },
