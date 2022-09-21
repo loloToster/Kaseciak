@@ -6,8 +6,7 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "ts-node main.ts",
-    "stop": "pkill --signal SIGTERM KaseciakNode",
-    "postinstall": "patch-package"
+    "stop": "pkill --signal SIGTERM KaseciakNode"
   },
   "keywords": [],
   "author": "",
