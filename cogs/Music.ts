@@ -380,7 +380,7 @@ const cog: RawCog = {
 
         }
     },
-    lyrisc: {
+    lyrics: {
         aliases: ["l", "tekst"],
         description: "Wyszukuje tekst piosenki",
         async command(ctx, args) {
