@@ -1,4 +1,4 @@
-import { MessageEmbed, TextChannel } from "discord.js"
+import { EmbedBuilder, TextChannel, PermissionFlagsBits } from "discord.js"
 import { Bot, RawCog } from "discord.js-ext"
 import { Kaseciak } from "../main"
 
@@ -8,7 +8,7 @@ const cog: RawCog = {
         check(ctx, args) {
             return Boolean(
                 ctx.message.member?.permissionsIn(ctx.channel as TextChannel)
-                    .has("ADMINISTRATOR")
+                    .has(PermissionFlagsBits.Administrator)
             )
         }
     },
@@ -45,7 +45,7 @@ const cog: RawCog = {
         description: "Wyświetla pomoc",
         usage: "help {komenda:opcjonalne}",
         async command(ctx, args) {
-            let emb = new MessageEmbed()
+            let emb = new EmbedBuilder()
 
             let bot = ctx.bot
             const prefix = typeof bot.prefix == "function" ?
@@ -63,11 +63,15 @@ const cog: RawCog = {
                     }
 
                     emb.setTitle(`${cmd.cog} > ${cmd.name}:`)
-                        .addField("Opis:", cmd.description || "Ta komenda nie ma opisu")
-                        .addField("Wywoływanie:", invokeMethodsText)
-                        .addField("Używanie:", "```\n" + prefix + (
-                            cmd.usage || cmd.name
-                        ) + "\n```")
+                        .addFields([
+                            { name: "Opis:", value: cmd.description || "Ta komenda nie ma opisu" },
+                            { name: "Wywoływanie:", value: invokeMethodsText },
+                            {
+                                name: "Używanie:", value: "```\n" + prefix + (
+                                    cmd.usage || cmd.name
+                                ) + "\n```"
+                            }
+                        ])
 
                     return await ctx.send({
                         embeds: [emb]
@@ -80,7 +84,7 @@ const cog: RawCog = {
                 for (const cmd of bot.cogs[cog].commands) {
                     text += `- ${cmd.name}\n`
                 }
-                emb.addField(`**${cog}:**`, text, false)
+                emb.addFields({ name: `**${cog}:**`, value: text, inline: false })
             }
 
             emb.setFooter({ text: prefix + "help {nazwa komendy}" })

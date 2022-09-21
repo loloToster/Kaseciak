@@ -1,14 +1,23 @@
-import { Message, MessageEmbed, TextChannel, MessageActionRow, MessageButton, MessageButtonOptions } from "discord.js"
+import {
+    Message,
+    EmbedBuilder,
+    TextChannel,
+    ActionRowBuilder,
+    ButtonBuilder,
+    ButtonStyle,
+    MessageActionRowComponentBuilder
+} from "discord.js"
+
 import { Bot } from "discord.js-ext"
 
 export interface EmbedBookOptions {
-    pages: MessageEmbed[],
+    pages: EmbedBuilder[],
     channel: TextChannel,
     bot: Bot
 }
 
 export class EmbedBook {
-    readonly pages: MessageEmbed[]
+    readonly pages: EmbedBuilder[]
 
     private currentIndex: number
     private message: Message | null
@@ -56,33 +65,33 @@ export class EmbedBook {
     }
 
     _createButtons(index: number = this.currentIndex) {
-        let buttons: MessageButton[] = []
+        let buttons: ButtonBuilder[] = []
 
         const start = index == 0
         buttons.push(
-            new MessageButton({ disabled: start } as MessageButtonOptions)
+            new ButtonBuilder({ disabled: start })
                 .setCustomId("pagestart")
                 .setEmoji("⏪")
-                .setStyle("SECONDARY"),
-            new MessageButton({ disabled: start } as MessageButtonOptions)
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder({ disabled: start })
                 .setCustomId("pageleft")
                 .setEmoji("⬅️")
-                .setStyle("SECONDARY")
+                .setStyle(ButtonStyle.Secondary)
         )
 
         const end = index == this.pages.length - 1
         buttons.push(
-            new MessageButton({ disabled: end } as MessageButtonOptions)
+            new ButtonBuilder({ disabled: end })
                 .setCustomId("pageright")
                 .setEmoji("➡️")
-                .setStyle("SECONDARY"),
-            new MessageButton({ disabled: end } as MessageButtonOptions)
+                .setStyle(ButtonStyle.Secondary),
+            new ButtonBuilder({ disabled: end })
                 .setCustomId("pageend")
                 .setEmoji("⏩")
-                .setStyle("SECONDARY")
+                .setStyle(ButtonStyle.Secondary)
         )
 
-        return new MessageActionRow()
+        return new ActionRowBuilder<MessageActionRowComponentBuilder>()
             .addComponents(buttons)
     }
 

@@ -1,4 +1,15 @@
-import { TextChannel, MessageActionRow, MessageButton, Message, Interaction, MessageEmbed, HexColorString } from "discord.js"
+import {
+    TextChannel,
+    ActionRowBuilder,
+    ButtonBuilder,
+    Message,
+    Interaction,
+    EmbedBuilder,
+    HexColorString,
+    ButtonStyle,
+    MessageActionRowComponentBuilder
+} from "discord.js"
+
 import { Player, Queue, Track } from "discord-player"
 import getColor from "./getColor"
 
@@ -112,7 +123,7 @@ export default class MediaController {
     }
 
     async _createEmbed(queue: Queue) {
-        const emb = new MessageEmbed()
+        const emb = new EmbedBuilder()
         const track = queue?.current
 
         if (track) {
@@ -128,9 +139,11 @@ export default class MediaController {
             emb.setTitle(`**${track.title}**`)
                 .setURL(track.url)
                 .setThumbnail(track.thumbnail)
-                .addField(track.author || "\u200b",
-                    `${timestamps.current}┃${queue.createProgressBar({ length: 13 })}┃${timestamps.end}`,
-                    false)
+                .addFields({
+                    name: track.author || "\u200b",
+                    value: `${timestamps.current}┃${queue.createProgressBar({ length: 13 })}┃${timestamps.end}`,
+                    inline: false
+                })
 
             const color = await getColor(track.thumbnail, 500, track.id)
             if (color)
@@ -138,11 +151,11 @@ export default class MediaController {
 
             const prevTrack = queue.previousTracks.at(-2)
             if (prevTrack)
-                emb.addField("Poprzednia:", `${prevTrack.title} \`${prevTrack.author}\``, true)
+                emb.addFields({ name: "Poprzednia:", value: `${prevTrack.title} \`${prevTrack.author}\``, inline: true })
 
             const nextTrack = queue.tracks[0]
             if (nextTrack)
-                emb.addField("Następna:", `${nextTrack.title} \`${nextTrack.author}\``, true)
+                emb.addFields({ name: "Następna:", value: `${nextTrack.title} \`${nextTrack.author}\``, inline: true })
         } else {
             emb.setTitle("Nic nie jest odtwarzane")
         }
@@ -155,36 +168,36 @@ export default class MediaController {
         const queue = await this.getQueue()
         if (!queue) return
 
+        const buttonRow = new ActionRowBuilder<MessageActionRowComponentBuilder>()
+            .addComponents([
+                new ButtonBuilder()
+                    .setCustomId("shuffle")
+                    .setEmoji("🔀")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId("prev")
+                    .setEmoji("⏪")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId("pause-play")
+                    .setEmoji("⏯️")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId("next")
+                    .setEmoji("⏩")
+                    .setStyle(ButtonStyle.Secondary),
+                new ButtonBuilder()
+                    .setCustomId("refresh")
+                    .setEmoji("🔄")
+                    .setStyle(ButtonStyle.Secondary)
+            ])
+
         this.currentMsg = await this.channel.send({
             content: this.lastAction || undefined,
             embeds: [
                 await this._createEmbed(queue)
             ],
-            components: [
-                new MessageActionRow()
-                    .addComponents([
-                        new MessageButton()
-                            .setCustomId("shuffle")
-                            .setEmoji("🔀")
-                            .setStyle("SECONDARY"),
-                        new MessageButton()
-                            .setCustomId("prev")
-                            .setEmoji("⏪")
-                            .setStyle("SECONDARY"),
-                        new MessageButton()
-                            .setCustomId("pause-play")
-                            .setEmoji("⏯️")
-                            .setStyle("SECONDARY"),
-                        new MessageButton()
-                            .setCustomId("next")
-                            .setEmoji("⏩")
-                            .setStyle("SECONDARY"),
-                        new MessageButton()
-                            .setCustomId("refresh")
-                            .setEmoji("🔄")
-                            .setStyle("SECONDARY")
-                    ])
-            ]
+            components: [buttonRow]
         })
         return this
     }

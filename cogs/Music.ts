@@ -1,5 +1,14 @@
-import { Message, MessageEmbed, GuildChannelResolvable, UserResolvable, TextChannel, HexColorString, GuildMember } from "discord.js"
-import { Queue, Player, PlayerSearchResult } from "discord-player"
+import {
+    Message,
+    EmbedBuilder,
+    GuildChannelResolvable,
+    UserResolvable,
+    TextChannel,
+    HexColorString,
+    GuildMember
+} from "discord.js"
+
+import { Queue, PlayerSearchResult } from "discord-player"
 import { Bot, RawCog } from "discord.js-ext"
 import { Kaseciak } from "../main"
 import MediaController, { CustomMetadata } from "../modules/MediaController"
@@ -113,7 +122,7 @@ const cog: RawCog = {
             if (playlist) {
                 const tracks = playlist.tracks
 
-                const emb = new MessageEmbed()
+                const emb = new EmbedBuilder()
                     .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
                     .setURL(playlist.url)
                     .setThumbnail(playlist.thumbnail)
@@ -131,7 +140,7 @@ const cog: RawCog = {
             } else if (searchResult?.tracks[0]) {
                 const track = searchResult.tracks[0]
 
-                const emb = new MessageEmbed()
+                const emb = new EmbedBuilder()
                     .setTitle(`Dodaję **${track.title}**`)
                     .setURL(track.url)
                     .setThumbnail(track.thumbnail)
@@ -279,16 +288,16 @@ const cog: RawCog = {
 
             await ctx.send({
                 embeds: [
-                    new MessageEmbed()
+                    new EmbedBuilder()
                         .setTitle(`**${track.title}**`)
                         .setURL(track.url)
                         .setThumbnail(track.thumbnail)
                         .setDescription(track.author)
-                        .addField(
-                            "\u2800",
-                            `${timestamps.current}┃${queue.createProgressBar({ length: 15 })}┃${timestamps.end}`,
-                            true
-                        )
+                        .addFields({
+                            name: "\u2800",
+                            value: `${timestamps.current}┃${queue.createProgressBar({ length: 15 })}┃${timestamps.end}`,
+                            inline: true
+                        })
                 ]
             })
         }
@@ -302,13 +311,13 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
-            let embeds: MessageEmbed[] = []
+            let embeds: EmbedBuilder[] = []
 
             const chunkSize = 10
             const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
             for (let i = 0, chunkNumber = 0; i < queue.tracks.length; i += chunkSize, chunkNumber++) {
                 const chunk = queue.tracks.slice(i, i + chunkSize)
-                embeds.push(new MessageEmbed()
+                embeds.push(new EmbedBuilder()
                     .setDescription(
                         chunk.map(
                             (track, j) =>
@@ -402,7 +411,7 @@ const cog: RawCog = {
 
             await ctx.send({
                 embeds: [
-                    new MessageEmbed()
+                    new EmbedBuilder()
                         .setTitle("Wyniki zapytania: " + query)
                         .setDescription(lyrics)
                 ]

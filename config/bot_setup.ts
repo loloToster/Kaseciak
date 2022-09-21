@@ -1,5 +1,5 @@
 import { Bot } from "discord.js-ext"
-import { Intents, Message } from "discord.js"
+import { ActivityType, GatewayIntentBits as Intents, Message } from "discord.js"
 import { Player, Queue, Track } from "discord-player"
 import { Kaseciak } from "../main"
 
@@ -20,22 +20,23 @@ function shuffle<T>(array: T[]) {
 
 const bot = new Bot({
     intents: [
-        Intents.FLAGS.GUILDS,
-        Intents.FLAGS.GUILD_MEMBERS,
-        Intents.FLAGS.GUILD_BANS,
-        Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-        Intents.FLAGS.GUILD_INTEGRATIONS,
-        Intents.FLAGS.GUILD_WEBHOOKS,
-        Intents.FLAGS.GUILD_INVITES,
-        Intents.FLAGS.GUILD_VOICE_STATES,
-        Intents.FLAGS.GUILD_PRESENCES,
-        Intents.FLAGS.GUILD_MESSAGES,
-        Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-        Intents.FLAGS.GUILD_MESSAGE_TYPING,
-        Intents.FLAGS.DIRECT_MESSAGES,
-        Intents.FLAGS.DIRECT_MESSAGE_REACTIONS,
-        Intents.FLAGS.DIRECT_MESSAGE_TYPING,
-        Intents.FLAGS.GUILD_SCHEDULED_EVENTS,
+        Intents.Guilds,
+        Intents.GuildMembers,
+        Intents.GuildBans,
+        Intents.GuildEmojisAndStickers,
+        Intents.GuildIntegrations,
+        Intents.GuildWebhooks,
+        Intents.GuildInvites,
+        Intents.GuildVoiceStates,
+        Intents.GuildPresences,
+        Intents.GuildMessages,
+        Intents.MessageContent,
+        Intents.GuildMessageReactions,
+        Intents.GuildMessageTyping,
+        Intents.DirectMessages,
+        Intents.DirectMessageReactions,
+        Intents.DirectMessageTyping,
+        Intents.GuildScheduledEvents
     ],
     prefix: async (bot, msg) => {
         let b = bot as Kaseciak
@@ -66,7 +67,7 @@ let statusLoop = bot.loop(async () => {
         bot.user?.setActivity({
             name: track.title,
             url: track.url,
-            type: "LISTENING"
+            type: ActivityType.Listening
         })
     else
         bot.user?.setActivity()
