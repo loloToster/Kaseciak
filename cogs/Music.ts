@@ -80,6 +80,7 @@ const cog: RawCog = {
                 },
                 leaveOnEnd: false,
                 leaveOnStop: false,
+                leaveOnEmptyCooldown: 5 * 60 * 1000,
                 bufferingTimeout: 500
             })
 
