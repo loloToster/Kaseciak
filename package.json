@@ -27,7 +27,7 @@
     "opusscript": "^0.0.8",
     "patch-package": "^6.4.7",
     "ts-node": "^10.4.0",
-    "ytdl-core": "^4.10.1"
+    "ytdl-core": "^4.11.2"
   },
   "devDependencies": {
     "@types/get-image-colors": "^4.0.1"
