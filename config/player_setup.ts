@@ -3,7 +3,7 @@ import { Bot } from "discord.js-ext"
 import { CustomMetadata } from "../modules/MediaController"
 
 export default (bot: Bot) => {
-    const player = new Player(bot)
+    const player = new Player(bot, { ytdlOptions: { quality: "lowestaudio" } })
 
     async function onError(type: string, queue: Queue<CustomMetadata>, error: Error) {
         const msg = `${type}: \`${error.message}\``
