@@ -204,7 +204,7 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
-            await queue.back()
+            await queue?.back()
 
             await ctx.send("Cofam")
         }
@@ -217,7 +217,7 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
-            queue.setPaused(true)
+            queue?.setPaused(true)
 
             await ctx.send("Pauzuję")
         }
@@ -230,7 +230,7 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
-            queue.setPaused(false)
+            queue?.setPaused(false)
 
             await ctx.send("Wznawiam")
         }
@@ -251,7 +251,7 @@ const cog: RawCog = {
 
             let secsInMs = secs * 1000
 
-            if (await queue.seek(secsInMs))
+            if (queue && await queue.seek(secsInMs))
                 await ctx.send(`Przewijam do ${secs} sekund`)
             else
                 await ctx.send("Nie zdołałem przewinąć")
@@ -266,7 +266,7 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
-            queue.clear()
+            queue?.clear()
 
             await ctx.send("Kolejka wyczyszczona 🗑️")
         }
@@ -314,6 +314,9 @@ const cog: RawCog = {
 
             let embeds: EmbedBuilder[] = []
 
+            if (!queue)
+                return await ctx.send("Kolejka nie istnieje")
+
             const chunkSize = 10
             const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
             for (let i = 0, chunkNumber = 0; i < queue.tracks.length; i += chunkSize, chunkNumber++) {
@@ -346,7 +349,7 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue(ctx.message.guild.id)
 
-            queue.shuffle()
+            queue?.shuffle()
 
             await ctx.send("Zshufflowałem piosenki 🔀")
         }
@@ -359,9 +362,9 @@ const cog: RawCog = {
             const player = (ctx.bot as Kaseciak).player
             const queue = player.getQueue<CustomMetadata>(ctx.message.guild.id)
 
-            queue.destroy(true)
+            queue?.destroy(true)
 
-            if (queue.metadata?.mc)
+            if (queue?.metadata?.mc)
                 await queue.metadata.mc.delete()
 
             await ctx.send("Zatrzymuje i kasuje kolejke")
