@@ -1,6 +1,13 @@
 import { Player, Queue } from "discord-player"
+import { TextChannel } from "discord.js"
 import { Bot } from "discord.js-ext"
-import { CustomMetadata } from "../modules/MediaController"
+import MediaController from "../modules/MediaController"
+
+export interface CustomMetadata {
+    mc?: MediaController,
+    channel: TextChannel,
+    radios: string[]
+}
 
 export default (bot: Bot) => {
     const player = new Player(bot, { ytdlOptions: { quality: "lowestaudio" } })

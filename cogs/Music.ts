@@ -11,7 +11,8 @@ import {
 import { Queue, PlayerSearchResult } from "discord-player"
 import { Bot, RawCog } from "discord.js-ext"
 import { Kaseciak } from "../main"
-import MediaController, { CustomMetadata } from "../modules/MediaController"
+import MediaController from "../modules/MediaController"
+import { CustomMetadata } from "../config/player_setup"
 import ytMusic from "../modules/ytMusicToTracks"
 import { EmbedBook } from "../modules/EmbedBook"
 import getColor from "../modules/getColor"
@@ -76,7 +77,8 @@ const cog: RawCog = {
 
             const queue = player.createQueue(ctx.message.guild, {
                 metadata: {
-                    channel: ctx.channel
+                    channel: ctx.channel,
+                    radios: []
                 },
                 leaveOnEnd: false,
                 leaveOnStop: false,

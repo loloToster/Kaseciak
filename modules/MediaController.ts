@@ -15,11 +15,6 @@ import getColor from "./getColor"
 
 const DELETE_LOOPS = 3
 
-export interface CustomMetadata {
-    mc?: MediaController,
-    channel: TextChannel
-}
-
 export default class MediaController {
     channel: TextChannel
     player: Player
@@ -86,7 +81,7 @@ export default class MediaController {
 
             case "prev":
                 try {
-                    queue.back()
+                    await queue.back()
                 } catch { }
                 break
 
