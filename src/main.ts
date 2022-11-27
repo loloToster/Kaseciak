@@ -24,7 +24,7 @@ bot.db = db
 let cogsDir = __dirname + "/cogs"
 
 readdirSync(cogsDir).forEach(file => {
-    if (file.endsWith(".ts")) bot.loadExtension(`${cogsDir}/${file}`)
+    if (file.match(/\.(js|ts)$/)) bot.loadExtension(`${cogsDir}/${file}`)
 })
 
 bot.login(process.env.TOKEN)
