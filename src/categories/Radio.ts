@@ -1,8 +1,8 @@
-import { Category } from "@discordx/utilities";
-import { Discord } from "discordx";
+import { Category } from "@discordx/utilities"
+import { Discord } from "discordx"
 
 @Discord()
 @Category("Radio")
-class Radio {
+export class Radio {
   // commands
 }
