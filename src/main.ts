@@ -13,6 +13,7 @@ dotenv.config()
 export const bot = new Client({
   // Discord intents
   intents: [
+    IntentsBitField.Flags.MessageContent,
     IntentsBitField.Flags.Guilds,
     IntentsBitField.Flags.GuildMembers,
     IntentsBitField.Flags.GuildMessages,
@@ -21,12 +22,7 @@ export const bot = new Client({
   ],
 
   // Debug logs are disabled in silent mode
-  silent: false,
-
-  // Configuration for @SimpleCommand
-  simpleCommand: {
-    prefix: "!"
-  }
+  silent: false
 })
 
 bot.once("ready", async () => {
@@ -40,8 +36,8 @@ bot.on("interactionCreate", (interaction: Interaction) => {
   bot.executeInteraction(interaction)
 })
 
-bot.on("messageCreate", (message: Message) => {
-  bot.executeCommand(message)
+bot.on("messageCreate", (msg: Message) => {
+  bot.executeCommand(msg)
 })
 
 async function main() {
