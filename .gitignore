@@ -1,7 +1,7 @@
+db.json
+
 .vscode
 .env
-.env.local
-yarn.lock
 
 build
 node_modules

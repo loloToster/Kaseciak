@@ -3,8 +3,10 @@ import dotenv from "dotenv"
 import type { Interaction, Message } from "discord.js"
 import { IntentsBitField } from "discord.js"
 
-import { dirname, importx } from "@discordx/importer"
-import { Client } from "discordx"
+import "reflect-metadata"
+import { container } from "tsyringe"
+import { importx } from "@discordx/importer"
+import { Client, DIService, tsyringeDependencyRegistryEngine } from "discordx"
 
 dotenv.config()
 
@@ -31,7 +33,7 @@ bot.once("ready", async () => {
   // Synchronize applications commands with Discord
   await bot.initApplicationCommands()
 
-  console.log("Bot started")
+  console.log("Ready!")
 })
 
 bot.on("interactionCreate", (interaction: Interaction) => {
@@ -42,16 +44,15 @@ bot.on("messageCreate", (message: Message) => {
   bot.executeCommand(message)
 })
 
-async function run() {
-  await importx(`${dirname(import.meta.url)}/categories/**/*.{ts,js}`)
+async function main() {
+  DIService.engine = tsyringeDependencyRegistryEngine.setInjector(container)
 
-  // Let's start the bot
-  if (!process.env.TOKEN) {
+  await importx(`${__dirname}/categories/**/*.{ts,js}`)
+
+  if (!process.env.TOKEN)
     throw Error("Could not find TOKEN in your environment")
-  }
 
-  // Log in with your bot token
   await bot.login(process.env.TOKEN)
 }
 
-run()
+main()
