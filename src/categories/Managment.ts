@@ -1,3 +1,5 @@
+import { injectable } from "tsyringe"
+
 import {
   ApplicationCommandOptionType,
   CommandInteraction,
@@ -7,15 +9,16 @@ import {
 import {
   Client,
   Discord,
+  Guard,
   Once,
   SimpleCommand,
   SimpleCommandMessage,
+  SimpleCommandOption,
+  SimpleCommandOptionType,
   Slash,
   SlashOption
 } from "discordx"
-
-import { injectable } from "tsyringe"
-import { Category } from "@discordx/utilities"
+import { Category, PermissionGuard } from "@discordx/utilities"
 
 import { Database } from "../modules/database"
 
@@ -36,11 +39,8 @@ export class Managment {
     }
   }
 
-  @SimpleCommand({
-    name: "ping",
-    description: "sprawdza czy bot jest uruchomiony"
-  })
-  @Slash({ name: "ping", description: "sprawdza czy bot jest uruchomiony" })
+  @SimpleCommand({ description: "sprawdza czy bot jest uruchomiony" })
+  @Slash({ description: "sprawdza czy bot jest uruchomiony" })
   async ping(
     interactionOrMsg: CommandInteraction | SimpleCommandMessage,
     client: Client
@@ -53,40 +53,58 @@ export class Managment {
     await replyHandler.reply(`Pong! \`${client.ws.ping}ms\``)
   }
 
+  @SimpleCommand({
+    name: "prefix",
+    description: "wyswietla aktualny prefix lub go ustawia"
+  })
   @Slash({
     name: "prefix",
     description: "wyswietla aktualny prefix lub go ustawia"
   })
+  @Guard(PermissionGuard(["Administrator"]))
   async setPrefix(
+    @SimpleCommandOption({
+      name: "new-prefix",
+      type: SimpleCommandOptionType.String
+    })
     @SlashOption({
-      name: "prefix",
+      name: "new-prefix",
       description: "nowy prefix (brak jeżeli chcesz tylko zobaczyć aktualny)",
       type: ApplicationCommandOptionType.String,
       required: false
     })
       newPrefix: string | undefined,
-      interaction: CommandInteraction
+      interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
-    if (!interaction.guildId)
-      return await interaction.reply(
+    const replyHandler =
+      interactionOrMsg instanceof CommandInteraction
+        ? interactionOrMsg
+        : interactionOrMsg.message
+
+    if (!replyHandler.guildId)
+      return await replyHandler.reply(
         "Ta komenda może być używana tylko na serwerze"
       )
 
     if (!newPrefix) {
       const data = await this.db.getData("/guilds")
-      const currentPrefix = data[interaction.guildId] || process.env.DEF_PREFIX
-      return await interaction.reply(`Aktualny prefix to: \`${currentPrefix}\``)
+      const currentPrefix =
+        data[replyHandler.guildId]?.prefix || process.env.DEF_PREFIX
+
+      return await replyHandler.reply(
+        `Aktualny prefix to: \`${currentPrefix}\``
+      )
     }
 
-    if (newPrefix.length > 10)
-      return await interaction.reply(
-        "Prefix nie może mieć więcej niż 10 znaków"
+    if (newPrefix.length > 1)
+      return await replyHandler.reply(
+        "Prefix może być tylko pojedynczym znakiem"
       )
 
     await this.db.push("/guilds", {
-      [interaction.guildId]: { prefix: newPrefix }
+      [replyHandler.guildId]: { prefix: newPrefix }
     })
 
-    await interaction.reply(`Nowy prefix to: \`${newPrefix}\``)
+    await replyHandler.reply(`Nowy prefix to: \`${newPrefix}\``)
   }
 }
