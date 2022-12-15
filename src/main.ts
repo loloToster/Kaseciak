@@ -41,6 +41,7 @@ bot.on("messageCreate", (msg: Message) => {
 })
 
 async function main() {
+  container.register("client", { useValue: bot })
   DIService.engine = tsyringeDependencyRegistryEngine.setInjector(container)
 
   await importx(`${__dirname}/categories/**/*.{ts,js}`)
