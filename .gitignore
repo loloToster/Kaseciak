@@ -1,5 +1,7 @@
-node_modules/
-dist/
+.vscode
 .env
-db.json
-test.*
+.env.local
+yarn.lock
+
+build
+node_modules

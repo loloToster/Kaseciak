@@ -1,30 +1,57 @@
-process.title = "KaseciakNode"
+import dotenv from "dotenv";
 
-import { readdirSync } from "fs"
-import dotenv from "dotenv"
-dotenv.config()
+import type { Interaction, Message } from "discord.js";
+import { IntentsBitField } from "discord.js";
 
-import rawBot from "./config/bot_setup"
-import playerSetup from "./config/player_setup"
-import db from "./config/db_setup"
+import { dirname, importx } from "@discordx/importer";
+import { Client } from "discordx";
 
-import { Bot } from "discord.js-ext"
-import { Player } from "discord-player"
-import { JsonDB } from "node-json-db"
+dotenv.config();
 
-export interface Kaseciak extends Bot {
-    player: Player,
-    db: JsonDB
+export const bot = new Client({
+  // Discord intents
+  intents: [
+    IntentsBitField.Flags.Guilds,
+    IntentsBitField.Flags.GuildMembers,
+    IntentsBitField.Flags.GuildMessages,
+    IntentsBitField.Flags.GuildMessageReactions,
+    IntentsBitField.Flags.GuildVoiceStates,
+  ],
+
+  // Debug logs are disabled in silent mode
+  silent: false,
+
+  // Configuration for @SimpleCommand
+  simpleCommand: {
+    prefix: "!",
+  },
+});
+
+bot.once("ready", async () => {
+  // Synchronize applications commands with Discord
+  await bot.initApplicationCommands();
+
+  console.log("Bot started");
+});
+
+bot.on("interactionCreate", (interaction: Interaction) => {
+  bot.executeInteraction(interaction);
+});
+
+bot.on("messageCreate", (message: Message) => {
+  bot.executeCommand(message);
+});
+
+async function run() {
+  await importx(`${dirname(import.meta.url)}/categories/**/*.{ts,js}`);
+
+  // Let's start the bot
+  if (!process.env.TOKEN) {
+    throw Error("Could not find TOKEN in your environment");
+  }
+
+  // Log in with your bot token
+  await bot.login(process.env.TOKEN);
 }
 
-const bot = rawBot as Kaseciak
-bot.player = playerSetup(bot)
-bot.db = db
-
-let cogsDir = __dirname + "/cogs"
-
-readdirSync(cogsDir).forEach(file => {
-    if (file.match(/\.(js|ts)$/)) bot.loadExtension(`${cogsDir}/${file}`)
-})
-
-bot.login(process.env.TOKEN)
+run();
