@@ -1,12 +1,22 @@
 import { inject, singleton } from "tsyringe"
-import { Player as DiscordPlayer } from "discord-player"
+import { Player as DiscordPlayer, Queue } from "discord-player"
 import { Client } from "discordx"
 import { GuildMember, GuildResolvable } from "discord.js"
+
+import MusicController from "../utils/MusicController"
+
+export interface CustomMetadata {
+  musiccontroller: MusicController
+}
 
 @singleton()
 export class Player extends DiscordPlayer {
   constructor(@inject("client") client: Client) {
     super(client, { ytdlOptions: { quality: "lowestaudio" } })
+  }
+
+  getQueue<T = CustomMetadata>(guild: GuildResolvable): Queue<T> | undefined {
+    return super.getQueue(guild)
   }
 
   createDefaultQueue(guild: GuildResolvable) {

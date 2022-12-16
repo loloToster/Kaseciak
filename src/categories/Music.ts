@@ -2,7 +2,8 @@ import {
   ApplicationCommandOptionType,
   CommandInteraction,
   EmbedBuilder,
-  HexColorString
+  HexColorString,
+  TextChannel
 } from "discord.js"
 
 import {
@@ -22,12 +23,13 @@ import { injectable } from "tsyringe"
 // @ts-ignore: Could not find a declaration file for module 'lyrics-finder'
 import getLyrics from "lyrics-finder"
 
+import { isValidUrl } from "../utils/isValidUrl"
+import getColor from "../utils/getColor"
 import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
 import ytMusicToTracks from "../utils/ytMusicToTracks"
-import getColor from "../utils/getColor"
+import MusicController from "../utils/MusicController"
 
-import { Player } from "../modules/player"
-import { isValidUrl } from "../utils/isValidUrl"
+import { CustomMetadata, Player } from "../modules/player"
 
 @Discord()
 @injectable()
@@ -377,5 +379,36 @@ export class Music {
           .setDescription(lyrics)
       ]
     })
+  }
+
+  @DualCommand({
+    name: "player",
+    description: "Wysyła lub usuwa kontroler odtwarzania"
+  })
+  async musicControllerHandler(
+    interactionOrMsg: CommandInteraction | SimpleCommandMessage
+  ) {
+    const replyHandler = getReplyHandler(interactionOrMsg)
+
+    if (!replyHandler.guild || !(replyHandler.channel instanceof TextChannel))
+      return
+
+    const queue = this.player.getQueue(replyHandler.guild)
+
+    if (!queue) {
+      return await replyHandler.reply("Kolejka nie istnieje")
+    }
+
+    if (interactionOrMsg instanceof CommandInteraction) {
+      await interactionOrMsg.reply("Otwieram odtwarzacz")
+    }
+
+    queue.metadata = {
+      ...queue.metadata,
+      musiccontroller: await new MusicController<CustomMetadata>({
+        player: this.player,
+        channel: replyHandler.channel
+      }).send()
+    }
   }
 }
