@@ -1,10 +1,31 @@
+import { CommandInteraction } from "discord.js"
+import { SimpleCommand, SimpleCommandMessage, Slash } from "discordx"
 import { MethodDecoratorEx } from "@discordx/internal"
-import { SimpleCommand, Slash } from "discordx"
 
 export interface DualCommandOptions {
   name?: any
   aliases?: string[]
   description: string
+}
+
+export function getReplyHandler(
+  interactionOrMsg: CommandInteraction | SimpleCommandMessage
+) {
+  return interactionOrMsg instanceof CommandInteraction
+    ? interactionOrMsg
+    : interactionOrMsg.message
+}
+
+export function getMember(
+  interactionOrMsg: CommandInteraction | SimpleCommandMessage
+) {
+  const replyHandler = getReplyHandler(interactionOrMsg)
+
+  return replyHandler.guild?.members.cache.get(
+    interactionOrMsg instanceof CommandInteraction
+      ? interactionOrMsg.member?.user.id || ""
+      : interactionOrMsg.message.author.id
+  )
 }
 
 export default function DualCommand(

@@ -17,7 +17,7 @@ import {
   SlashOption
 } from "discordx"
 import { Category, PermissionGuard } from "@discordx/utilities"
-import DualCommand from "../utils/DualCommand"
+import DualCommand, { getReplyHandler } from "../utils/DualCommand"
 
 import { Database } from "../modules/database"
 
@@ -43,10 +43,7 @@ export class Managment {
     interactionOrMsg: CommandInteraction | SimpleCommandMessage,
     client: Client
   ) {
-    const replyHandler =
-      interactionOrMsg instanceof CommandInteraction
-        ? interactionOrMsg
-        : interactionOrMsg.message
+    const replyHandler = getReplyHandler(interactionOrMsg)
 
     await replyHandler.reply(`Pong! \`${client.ws.ping}ms\``)
   }
@@ -67,10 +64,7 @@ export class Managment {
       newPrefix: string | undefined,
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
-    const replyHandler =
-      interactionOrMsg instanceof CommandInteraction
-        ? interactionOrMsg
-        : interactionOrMsg.message
+    const replyHandler = getReplyHandler(interactionOrMsg)
 
     if (!replyHandler.guildId)
       return await replyHandler.reply(

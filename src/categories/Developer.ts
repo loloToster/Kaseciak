@@ -2,7 +2,7 @@ import { injectable } from "tsyringe"
 import { CommandInteraction } from "discord.js"
 import { Discord, Guard, GuardFunction, SimpleCommandMessage } from "discordx"
 import { Category } from "@discordx/utilities"
-import DualCommand from "../utils/DualCommand"
+import DualCommand, { getReplyHandler } from "../utils/DualCommand"
 
 import { Database } from "../modules/database"
 
@@ -29,10 +29,7 @@ export class Developer {
 
   @DualCommand({ description: "exites the bot process" })
   async exit(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
-    const replyHandler =
-      interactionOrMsg instanceof CommandInteraction
-        ? interactionOrMsg
-        : interactionOrMsg.message
+    const replyHandler = getReplyHandler(interactionOrMsg)
 
     try {
       await replyHandler.reply("Exiting...")
@@ -43,10 +40,7 @@ export class Developer {
 
   @DualCommand({ name: "reload-db", description: "reloads the db" })
   async reloadDb(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
-    const replyHandler =
-      interactionOrMsg instanceof CommandInteraction
-        ? interactionOrMsg
-        : interactionOrMsg.message
+    const replyHandler = getReplyHandler(interactionOrMsg)
 
     await this.db.reload()
 

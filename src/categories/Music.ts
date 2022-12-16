@@ -18,7 +18,7 @@ import { PlayerSearchResult } from "discord-player"
 
 import { injectable } from "tsyringe"
 
-import DualCommand from "../utils/DualCommand"
+import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
 import ytMusicToTracks from "../utils/ytMusicToTracks"
 import getColor from "../utils/getColor"
 
@@ -49,19 +49,9 @@ export class Music {
       query: string | undefined,
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
-    const replyHandler =
-      interactionOrMsg instanceof CommandInteraction
-        ? interactionOrMsg
-        : interactionOrMsg.message
-
+    const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
-
-    const member = replyHandler.guild.members.cache.get(
-      interactionOrMsg instanceof CommandInteraction
-        ? interactionOrMsg.member?.user.id || "-1"
-        : interactionOrMsg.message.author.id
-    )
-
+    const member = getMember(interactionOrMsg)
     if (!member) return
 
     const queue = this.player.createDefaultQueue(replyHandler.guild)
