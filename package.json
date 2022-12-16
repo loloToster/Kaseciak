@@ -14,6 +14,7 @@
   },
   "dependencies": {
     "@discordx/importer": "^1.1.10",
+    "@discordx/pagination": "^3.4.0",
     "@discordx/utilities": "^5.2.0",
     "axios": "^1.2.1",
     "discord-player": "^5.3.2",

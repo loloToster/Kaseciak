@@ -14,6 +14,7 @@ import {
 } from "discordx"
 
 import { Category } from "@discordx/utilities"
+import { Pagination, PaginationType } from "@discordx/pagination"
 import { PlayerSearchResult } from "discord-player"
 
 import { injectable } from "tsyringe"
@@ -98,7 +99,8 @@ export class Music {
       const emb = new EmbedBuilder()
         .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
         .setURL(playlist.url)
-        .setThumbnail(playlist.thumbnail)
+        // @ts-ignore
+        .setThumbnail(playlist.thumbnail.url || playlist.thumbnail)
         .setDescription(playlist.author.name)
 
       const color = await getColor(playlist.thumbnail, 500, playlist.id)
@@ -274,5 +276,59 @@ export class Music {
     queue?.destroy(true)
 
     await replyHandler.reply("Zatrzymałem i skasowałem kolejke")
+  }
+
+  @DualCommand({
+    aliases: ["q"],
+    description: "Wyświetla kolejkę"
+  })
+  async queue(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
+    const replyHandler = getReplyHandler(interactionOrMsg)
+    if (!replyHandler.guild) return
+
+    const queue = this.player.getQueue(replyHandler.guild)
+
+    if (!queue) return await replyHandler.reply("Kolejka nie istnieje")
+
+    const pages: EmbedBuilder[] = []
+
+    const chunkSize = 10
+    const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
+
+    for (
+      let i = 0, chunkNumber = 0;
+      i < queue.tracks.length;
+      i += chunkSize, chunkNumber++
+    ) {
+      const chunk = queue.tracks.slice(i, i + chunkSize)
+      pages.push(
+        new EmbedBuilder()
+          .setDescription(
+            chunk
+              .map(
+                (track, j) =>
+                  `${chunkNumber * chunkSize + j + 1}. ${track.title} - ${
+                    track.author
+                  } \`${track.duration}\``
+              )
+              .join("\n")
+          )
+          .setFooter({ text: `Strona ${chunkNumber + 1}/${numberOfChunks}` })
+      )
+    }
+
+    if (!pages.length) return await replyHandler.reply("Kolejka jest pusta")
+
+    new Pagination(
+      replyHandler,
+      pages.map(p => ({ embeds: [p] })),
+      {
+        type: PaginationType.Button,
+        start: { label: "Początek" },
+        previous: { label: "Poprzednia" },
+        next: { label: "Następna" },
+        end: { label: "Koniec" }
+      }
+    ).send()
   }
 }
