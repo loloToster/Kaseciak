@@ -23,6 +23,7 @@
     ],
     "linebreak-style": ["error", "windows"],
     "quotes": ["error", "double"],
-    "semi": ["error", "never"]
+    "semi": ["error", "never"],
+    "@typescript-eslint/no-explicit-any": "off"
   }
 }
