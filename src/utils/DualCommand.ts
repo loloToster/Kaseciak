@@ -3,6 +3,7 @@ import { SimpleCommand, Slash } from "discordx"
 
 export interface DualCommandOptions {
   name?: any
+  aliases?: string[]
   description: string
 }
 
