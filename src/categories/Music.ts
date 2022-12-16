@@ -19,6 +19,9 @@ import { PlayerSearchResult } from "discord-player"
 
 import { injectable } from "tsyringe"
 
+// @ts-ignore: Could not find a declaration file for module 'lyrics-finder'
+import getLyrics from "lyrics-finder"
+
 import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
 import ytMusicToTracks from "../utils/ytMusicToTracks"
 import getColor from "../utils/getColor"
@@ -330,5 +333,49 @@ export class Music {
         end: { label: "Koniec" }
       }
     ).send()
+  }
+
+  @DualCommand({
+    aliases: ["l", "tekst"],
+    description: "Wyszukuje tekst piosenki"
+  })
+  async lyrics(
+    @SimpleCommandOption({
+      name: "query",
+      type: SimpleCommandOptionType.String
+    })
+    @SlashOption({
+      name: "query",
+      description: "tytuł piosenki",
+      type: ApplicationCommandOptionType.String,
+      required: false
+    })
+      query: string | undefined,
+      interactionOrMsg: CommandInteraction | SimpleCommandMessage
+  ) {
+    const replyHandler = getReplyHandler(interactionOrMsg)
+    if (!replyHandler.guild) return
+
+    if (!query) {
+      const queue = this.player.getQueue(replyHandler.guild)
+
+      if (!queue?.current)
+        return await replyHandler.reply("Nic nie jest odtwarzane")
+
+      query = `${queue.current.title} ${queue.current.author}`
+    }
+
+    await replyHandler.reply("Szukam: " + query)
+    const lyrics: string | undefined = await getLyrics(query)
+
+    if (!lyrics) return await replyHandler.reply("Nie znalazłem tekstu")
+
+    await replyHandler.reply({
+      embeds: [
+        new EmbedBuilder()
+          .setTitle("Wyniki zapytania: " + query)
+          .setDescription(lyrics)
+      ]
+    })
   }
 }
