@@ -367,18 +367,29 @@ export class Music {
       query = `${queue.current.title} ${queue.current.author}`
     }
 
-    await replyHandler.reply("Szukam: " + query)
+    if (interactionOrMsg instanceof CommandInteraction) {
+      await interactionOrMsg.deferReply()
+    } else {
+      await replyHandler.reply("Szukam: " + query)
+    }
+
     const lyrics: string | undefined = await getLyrics(query)
 
-    if (!lyrics) return await replyHandler.reply("Nie znalazłem tekstu")
+    const msgPayload = lyrics
+      ? {
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("Wyniki zapytania: " + query)
+            .setDescription(lyrics)
+        ]
+      }
+      : "Nie znalazłem tekstu"
 
-    await replyHandler.reply({
-      embeds: [
-        new EmbedBuilder()
-          .setTitle("Wyniki zapytania: " + query)
-          .setDescription(lyrics)
-      ]
-    })
+    if (interactionOrMsg instanceof CommandInteraction) {
+      await interactionOrMsg.editReply(msgPayload)
+    } else {
+      await replyHandler.reply(msgPayload)
+    }
   }
 
   @DualCommand({
