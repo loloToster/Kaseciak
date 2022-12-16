@@ -1,14 +1,8 @@
 import { injectable } from "tsyringe"
 import { CommandInteraction } from "discord.js"
-import {
-  Discord,
-  Guard,
-  GuardFunction,
-  SimpleCommand,
-  SimpleCommandMessage,
-  Slash
-} from "discordx"
+import { Discord, Guard, GuardFunction, SimpleCommandMessage } from "discordx"
 import { Category } from "@discordx/utilities"
+import DualCommand from "../utils/DualCommand"
 
 import { Database } from "../modules/database"
 
@@ -33,8 +27,7 @@ const isOwner: GuardFunction = async (
 export class Developer {
   constructor(private db: Database) {}
 
-  @SimpleCommand()
-  @Slash({ description: "exites the bot process" })
+  @DualCommand({ description: "exites the bot process" })
   async exit(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler =
       interactionOrMsg instanceof CommandInteraction
@@ -48,8 +41,7 @@ export class Developer {
     }
   }
 
-  @SimpleCommand({ name: "reload-db", description: "reloads database" })
-  @Slash({ name: "reload-db", description: "reloads database" })
+  @DualCommand({ name: "reload-db", description: "reloads the db" })
   async reloadDb(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler =
       interactionOrMsg instanceof CommandInteraction

@@ -11,14 +11,13 @@ import {
   Discord,
   Guard,
   Once,
-  SimpleCommand,
   SimpleCommandMessage,
   SimpleCommandOption,
   SimpleCommandOptionType,
-  Slash,
   SlashOption
 } from "discordx"
 import { Category, PermissionGuard } from "@discordx/utilities"
+import DualCommand from "../utils/DualCommand"
 
 import { Database } from "../modules/database"
 
@@ -39,8 +38,7 @@ export class Managment {
     }
   }
 
-  @SimpleCommand({ description: "sprawdza czy bot jest uruchomiony" })
-  @Slash({ description: "sprawdza czy bot jest uruchomiony" })
+  @DualCommand({ description: "sprawdza czy bot jest uruchomiony" })
   async ping(
     interactionOrMsg: CommandInteraction | SimpleCommandMessage,
     client: Client
@@ -53,16 +51,9 @@ export class Managment {
     await replyHandler.reply(`Pong! \`${client.ws.ping}ms\``)
   }
 
-  @SimpleCommand({
-    name: "prefix",
-    description: "wyswietla aktualny prefix lub go ustawia"
-  })
-  @Slash({
-    name: "prefix",
-    description: "wyswietla aktualny prefix lub go ustawia"
-  })
+  @DualCommand({ description: "wyswietla aktualny prefix lub go ustawia" })
   @Guard(PermissionGuard(["Administrator"]))
-  async setPrefix(
+  async prefix(
     @SimpleCommandOption({
       name: "new-prefix",
       type: SimpleCommandOptionType.String
