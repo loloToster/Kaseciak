@@ -5,7 +5,9 @@ import { injectable } from "tsyringe"
 import {
   ApplicationCommandOptionType,
   Collection,
-  CommandInteraction
+  CommandInteraction,
+  GuildMember,
+  UserResolvable
 } from "discord.js"
 import {
   Discord,
@@ -22,54 +24,57 @@ import { Track, Queue } from "discord-player"
 import { CustomMetadata, Player } from "../modules/player"
 import DualCommand, { getReplyHandler } from "../utils/DualCommand"
 
-import { stations, sources as radioDataSources } from "../radio_stations.json"
+import {
+  stations,
+  sources as radioDataSources,
+  StationName
+} from "../utils/radioStations"
 
 const stationNames = Object.keys(stations)
-type StationName = keyof typeof stations
-
-async function stationToTrack(player: Player, station: StationName) {
-  let query = ""
-
-  for (const source of radioDataSources) {
-    const { url, selector } = source
-
-    const res = await axios.get(
-      url + (stations[station].source_url as Record<string, any>)[url]
-    )
-
-    if (res.status !== 200) {
-      console.warn(
-        url,
-        "returned status code other then 200:",
-        res.status,
-        res.statusText
-      )
-      continue
-    }
-
-    const $ = cheerio.load(res.data)
-    const title = $(selector).first().text()
-
-    if (title) {
-      query = title
-      break
-    }
-  }
-
-  if (!query) return null
-
-  const result = await player.search(query, {
-    requestedBy: player.client.user!
-  })
-
-  return result?.tracks[0] || null
-}
 
 @Discord()
 @injectable()
 @Category("Radio")
 export class Radio {
   constructor(private player: Player) {}
+
+  private async stationToTrack(author: UserResolvable, station: StationName) {
+    let query = ""
+
+    for (const source of radioDataSources) {
+      const { url, selector } = source
+
+      const res = await axios.get(
+        url + (stations[station].source_url as Record<string, any>)[url]
+      )
+
+      if (res.status !== 200) {
+        console.warn(
+          url,
+          "returned status code other then 200:",
+          res.status,
+          res.statusText
+        )
+        continue
+      }
+
+      const $ = cheerio.load(res.data)
+      const title = $(selector).first().text()
+
+      if (title) {
+        query = title
+        break
+      }
+    }
+
+    if (!query) return null
+
+    const result = await this.player.search(query, {
+      requestedBy: author
+    })
+
+    return result?.tracks[0] || null
+  }
 
   @Once({ event: "ready" })
   onReady() {
@@ -83,11 +88,20 @@ export class Radio {
       for (const queue of queues.values()) {
         const radios = queue.metadata?.radios || []
 
-        for (const station of radios as StationName[]) {
-          const track =
-            station in cache
-              ? cache[station]
-              : await stationToTrack(this.player, station)
+        for (const station of radios) {
+          let track: Track | null = null
+
+          if (station.name in cache) {
+            track = cache[station.name]
+            if (track) {
+              track = new Track(this.player, {
+                ...track,
+                requestedBy: station.author
+              })
+            }
+          } else {
+            track = await this.stationToTrack(station.author, station.name)
+          }
 
           if (!track) continue
 
@@ -117,17 +131,22 @@ export class Radio {
       type: ApplicationCommandOptionType.String,
       required: true
     })
-      station: string,
+      station: StationName,
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
     const replyHandler = getReplyHandler(interactionOrMsg)
-    if (!replyHandler.guild) return
+    if (!replyHandler.guild || !(replyHandler.member instanceof GuildMember))
+      return
 
     if (!stationNames.includes(station))
       return await replyHandler.reply("Nie znam stacji: " + station)
 
     const queue = this.player.createDefaultQueue(replyHandler.guild)
-    queue.metadata?.radios.push(station)
+
+    queue.metadata?.radios.push({
+      author: replyHandler.member.user,
+      name: station
+    })
 
     await replyHandler.reply("Dodaję stacje: " + station)
   }

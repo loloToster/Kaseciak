@@ -1,12 +1,16 @@
 import { inject, singleton } from "tsyringe"
 import { Player as DiscordPlayer, Queue } from "discord-player"
 import { Client } from "discordx"
-import { GuildMember, GuildResolvable } from "discord.js"
+import { GuildMember, GuildResolvable, User } from "discord.js"
 
 import MusicController from "../utils/MusicController"
+import { StationName } from "../utils/radioStations"
 
 export interface CustomMetadata {
-  radios: string[]
+  radios: Array<{
+    author: User
+    name: StationName
+  }>
   musiccontroller?: MusicController<CustomMetadata>
 }
 
