@@ -13,12 +13,12 @@
     "lint": "eslint . --ignore-path ./.gitignore"
   },
   "dependencies": {
-    "@discordjs/opus": "^0.8.0",
     "@discordx/importer": "^1.1.10",
     "@discordx/pagination": "^3.4.0",
     "@discordx/utilities": "^5.2.0",
     "async-lock": "^1.4.0",
     "axios": "^1.2.1",
+    "cheerio": "^1.0.0-rc.12",
     "discord-player": "^5.3.2",
     "discord.js": "^14.6.0",
     "discordx": "^11.4.0",

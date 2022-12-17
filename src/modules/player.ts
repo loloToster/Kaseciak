@@ -6,6 +6,7 @@ import { GuildMember, GuildResolvable } from "discord.js"
 import MusicController from "../utils/MusicController"
 
 export interface CustomMetadata {
+  radios: string[]
   musiccontroller?: MusicController<CustomMetadata>
 }
 
@@ -20,7 +21,8 @@ export class Player extends DiscordPlayer {
   }
 
   createDefaultQueue(guild: GuildResolvable) {
-    return super.createQueue(guild, {
+    return super.createQueue<CustomMetadata>(guild, {
+      metadata: { radios: [] },
       leaveOnEnd: false,
       leaveOnStop: false,
       leaveOnEmptyCooldown: 5 * 60 * 1000,

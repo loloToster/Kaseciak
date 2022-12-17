@@ -430,7 +430,7 @@ export class Music {
       }).send()
 
     queue.metadata = {
-      ...queue.metadata,
+      radios: queue.metadata?.radios ?? [],
       musiccontroller: newController
     }
   }

@@ -1,0 +1,62 @@
+{
+  "sources": [
+    {
+      "url": "https://myradioonline.pl/",
+      "selector": "span.txtsong.mcolumn"
+    },
+    {
+      "url": "https://radiospis.pl/stacja/",
+      "selector": "h2.entry-title"
+    }
+  ],
+  "stations": {
+    "eska": {
+      "img-url": "radio-eska/play_250_250.png",
+      "source_url": {
+        "https://radiospis.pl/stacja/": "eska",
+        "https://myradioonline.pl/": "radio-eska/playlista"
+      },
+      "fancy-name": "ESKA"
+    },
+    "rmffm": {
+      "img-url": "rmf-fm/play_250_250.jpg",
+      "source_url": {
+        "https://radiospis.pl/stacja/": "rmf-fm",
+        "https://myradioonline.pl/": "rmf-fm/playlista"
+      },
+      "fancy-name": "RMF-FM"
+    },
+    "rmfmaxxx": {
+      "img-url": "rmf-maxxx/play_250_250.jpg",
+      "source_url": {
+        "https://radiospis.pl/stacja/": "rmf-maxxx",
+        "https://myradioonline.pl/": "rmf-maxxx/playlista"
+      },
+      "fancy-name": "RMF-MAXXX"
+    },
+    "zet": {
+      "img-url": "radio-zet/play_250_250.png",
+      "source_url": {
+        "https://radiospis.pl/stacja/": "zet",
+        "https://myradioonline.pl/": "radio-zet/playlista"
+      },
+      "fancy-name": "Zet"
+    },
+    "zloteprzeboje": {
+      "img-url": "radio-zlote-przeboje/play_250_250.jpg",
+      "source_url": {
+        "https://radiospis.pl/stacja/": "zlote-przeboje",
+        "https://myradioonline.pl/": "radio-zlote-przeboje/playlista"
+      },
+      "fancy-name": "Z\u0142otePrzeboje"
+    },
+    "wawa": {
+      "img-url": "radio-wawa/play_250_250.jpg",
+      "source_url": {
+        "https://radiospis.pl/stacja/": "wawa",
+        "https://myradioonline.pl/": "radio-wawa/playlista"
+      },
+      "fancy-name": "WAWA"
+    }
+  }
+}
