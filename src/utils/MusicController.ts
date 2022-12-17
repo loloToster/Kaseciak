@@ -72,7 +72,7 @@ export default class MusicController<M = unknown> {
   ) {
     const bindedListener = listener.bind(this)
     this.listeners.push([event, bindedListener])
-    this.player.on
+    this.player.on(event, listener)
   }
 
   private addClientListener<K extends keyof ClientEvents>(
@@ -121,15 +121,17 @@ export default class MusicController<M = unknown> {
   }
 
   private async _resendHandler(msg: Message) {
-    if (
-      this.deleted || // the controller is deleted
-      !this.msg || // or there is no message
-      msg.channelId != this.channel.id || // or channel is not the assigned channel
-      msg.id == this.msg.id // or the message is the same as current message
-    )
-      return
+    return await this.msgLock.acquire("", async () => {
+      if (
+        this.deleted || // the controller is deleted
+        !this.msg || // or there is no message
+        msg.channelId != this.channel.id || // or channel is not the assigned channel
+        msg.id == this.msg.id // or the message is the same as current message
+      )
+        return
 
-    await this.resend().catch(console.error)
+      await this.resend().catch(console.error)
+    })
   }
 
   async send() {
@@ -138,17 +140,15 @@ export default class MusicController<M = unknown> {
   }
 
   async resend() {
-    return await this.msgLock.acquire("", async () => {
-      try {
-        await this.msg?.delete()
-      } catch {
-        return false
-      }
+    try {
+      await this.msg?.delete()
+    } catch {
+      return false
+    }
 
-      this.msg = await this.channel.send(await this.createMsgPayload())
+    this.msg = await this.channel.send(await this.createMsgPayload())
 
-      return true
-    })
+    return true
   }
 
   async refresh() {
