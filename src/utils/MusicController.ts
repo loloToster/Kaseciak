@@ -2,6 +2,7 @@ import {
   ActionRowBuilder,
   ButtonBuilder,
   ButtonStyle,
+  ClientEvents,
   EmbedBuilder,
   HexColorString,
   Interaction,
@@ -9,7 +10,8 @@ import {
   MessageActionRowComponentBuilder,
   TextChannel
 } from "discord.js"
-import { Player, Queue } from "discord-player"
+import { Player, Queue, PlayerEvents } from "discord-player"
+import AsyncLock from "async-lock"
 
 import getColor from "./getColor"
 
@@ -26,8 +28,12 @@ export default class MusicController<M = unknown> {
   refreshInterval: number
 
   lastAction: string
+  deleted: boolean
 
   private msg: Message | null
+  private msgLock: AsyncLock
+  private listeners: Array<[string, (...x: any[]) => any]>
+  private resendInterval: NodeJS.Timer
 
   constructor(opts: MusicControllerOptions) {
     this.player = opts.player
@@ -36,21 +42,46 @@ export default class MusicController<M = unknown> {
 
     opts.autoresend = opts.autoresend === undefined ? true : opts.autoresend
 
+    this.deleted = false
     this.lastAction = ""
-    this.msg = null
 
-    this.player.client.on(
-      "interactionCreate",
-      this._interactionHandler.bind(this)
+    this.msg = null
+    this.msgLock = new AsyncLock()
+    this.listeners = []
+
+    this.resendInterval = setInterval(
+      this.refresh.bind(this),
+      this.refreshInterval
     )
 
+    this.addPlayerListener("trackStart", this.refresh)
+    this.addClientListener("interactionCreate", this._interactionHandler)
+
     if (opts.autoresend) {
-      this.player.client.on("messageCreate", this._resendHandler.bind(this))
+      this.addClientListener("messageCreate", this._resendHandler)
     }
   }
 
   get queue() {
     return this.player.getQueue<M>(this.channel.guildId)
+  }
+
+  private addPlayerListener<K extends keyof PlayerEvents>(
+    event: K,
+    listener: PlayerEvents[K]
+  ) {
+    const bindedListener = listener.bind(this)
+    this.listeners.push([event, bindedListener])
+    this.player.on
+  }
+
+  private addClientListener<K extends keyof ClientEvents>(
+    event: K,
+    listener: (...args: ClientEvents[K]) => any
+  ) {
+    const bindedListener = listener.bind(this)
+    this.listeners.push([event, bindedListener])
+    this.player.client.on(event, bindedListener)
   }
 
   private async _interactionHandler(interaction: Interaction) {
@@ -91,7 +122,8 @@ export default class MusicController<M = unknown> {
 
   private async _resendHandler(msg: Message) {
     if (
-      !this.msg || // there is no message
+      this.deleted || // the controller is deleted
+      !this.msg || // or there is no message
       msg.channelId != this.channel.id || // or channel is not the assigned channel
       msg.id == this.msg.id // or the message is the same as current message
     )
@@ -106,15 +138,17 @@ export default class MusicController<M = unknown> {
   }
 
   async resend() {
-    try {
-      await this.msg?.delete()
-    } catch {
-      return false
-    }
+    return await this.msgLock.acquire("", async () => {
+      try {
+        await this.msg?.delete()
+      } catch {
+        return false
+      }
 
-    this.msg = await this.channel.send(await this.createMsgPayload())
+      this.msg = await this.channel.send(await this.createMsgPayload())
 
-    return true
+      return true
+    })
   }
 
   async refresh() {
@@ -128,6 +162,21 @@ export default class MusicController<M = unknown> {
     }
 
     return true
+  }
+
+  async delete() {
+    this.deleted = true
+    clearInterval(this.resendInterval)
+
+    // remove all listeners
+    this.listeners.forEach(([ev, l]) => {
+      this.player.removeListener(ev as keyof PlayerEvents, l)
+      this.player.client.removeListener(ev, l)
+    })
+
+    await this.msgLock.acquire("", async () => {
+      await this.msg?.delete()
+    })
   }
 
   async createEmbed(queue: Queue | undefined) {

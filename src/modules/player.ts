@@ -6,7 +6,7 @@ import { GuildMember, GuildResolvable } from "discord.js"
 import MusicController from "../utils/MusicController"
 
 export interface CustomMetadata {
-  musiccontroller: MusicController
+  musiccontroller?: MusicController<CustomMetadata>
 }
 
 @singleton()

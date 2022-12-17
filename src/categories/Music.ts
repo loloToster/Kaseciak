@@ -410,16 +410,28 @@ export class Music {
       return await replyHandler.reply("Kolejka nie istnieje")
     }
 
+    const controllerExists = Boolean(queue.metadata?.musiccontroller)
+
     if (interactionOrMsg instanceof CommandInteraction) {
-      await interactionOrMsg.reply("Otwieram odtwarzacz")
+      await interactionOrMsg.reply(
+        controllerExists ? "Zamykam odtwarzacz" : "Otwieram odtwarzacz"
+      )
     }
 
-    queue.metadata = {
-      ...queue.metadata,
-      musiccontroller: await new MusicController<CustomMetadata>({
+    if (controllerExists) {
+      await queue.metadata?.musiccontroller?.delete()
+    }
+
+    const newController = controllerExists
+      ? undefined
+      : await new MusicController<CustomMetadata>({
         player: this.player,
         channel: replyHandler.channel
       }).send()
+
+    queue.metadata = {
+      ...queue.metadata,
+      musiccontroller: newController
     }
   }
 }
