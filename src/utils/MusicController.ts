@@ -87,9 +87,10 @@ export default class MusicController<M = unknown> {
 
   private async _interactionHandler(interaction: Interaction) {
     if (
+      !this.queue ||
       !interaction.isButton() ||
-      interaction.channelId != this.channel.id ||
-      !this.queue
+      interaction.channelId !== this.channel.id ||
+      interaction.message.id !== this.msg?.id
     )
       return
 
