@@ -36,6 +36,14 @@ export default function DualCommand(
     propertyKey: string,
     descriptor: PropertyDescriptor
   ) => {
+    target[propertyKey] = async function (...args: any[]) {
+      try {
+        await target[propertyKey].apply(this, args)
+      } catch (err) {
+        console.error(err)
+      }
+    }
+
     Slash(options)(target, propertyKey, descriptor)
     SimpleCommand(options)(target, propertyKey, descriptor)
   }
