@@ -119,7 +119,7 @@ export class Radio {
 
   @DualCommand({
     aliases: ["r"],
-    description: "Uruchamia dodawanie piosenek z radia"
+    description: "Starts adding songs from the radio or adds a radio station"
   })
   @Guard(onVoiceChannel)
   async radio(
@@ -130,7 +130,7 @@ export class Radio {
     @SlashChoice(...stationNames)
     @SlashOption({
       name: "station",
-      description: "stacja do dodania",
+      description: "name of the station to add to the queue",
       type: ApplicationCommandOptionType.String,
       required: true
     })
@@ -143,7 +143,9 @@ export class Radio {
     if (!member) return
 
     if (!stationNames.includes(station))
-      return await replyHandler.reply("Nie znam stacji: " + station)
+      return await replyHandler.reply(
+        "I don't know station with a name: " + station
+      )
 
     const queue = this.player.createDefaultQueue(replyHandler.guild)
 
@@ -154,13 +156,13 @@ export class Radio {
 
     await this.player.joinVC(member, replyHandler.guild)
 
-    await replyHandler.reply("Dodaję stacje: " + station)
+    await replyHandler.reply("Adding station: " + station)
   }
 
   @DualCommand({
     name: "radio-stop",
     aliases: ["rs"],
-    description: "Zatrzymuje dodawanie piosenek z radia"
+    description: "Removes all radios from the queue"
   })
   @Guard(onVoiceChannel)
   async radioStop(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
@@ -171,6 +173,6 @@ export class Radio {
 
     if (queue?.metadata?.radios) queue.metadata.radios = []
 
-    await replyHandler.reply("Usuwam wszystkie słuchane radia")
+    await replyHandler.reply("Removing all radios from the queue")
   }
 }

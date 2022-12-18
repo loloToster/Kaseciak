@@ -40,7 +40,7 @@ export class Managment {
     }
   }
 
-  @DualCommand({ description: "sprawdza czy bot jest uruchomiony" })
+  @DualCommand({ description: "Checks whether the bot is running" })
   async ping(
     interactionOrMsg: CommandInteraction | SimpleCommandMessage,
     client: Client
@@ -50,7 +50,7 @@ export class Managment {
     await replyHandler.reply(`Pong! \`${client.ws.ping}ms\``)
   }
 
-  @DualCommand({ description: "wyswietla aktualny prefix lub go ustawia" })
+  @DualCommand({ description: "Shows current prefix or sets it" })
   @Guard(isGuild, PermissionGuard(["Administrator"]))
   async prefix(
     @SimpleCommandOption({
@@ -59,7 +59,7 @@ export class Managment {
     })
     @SlashOption({
       name: "new-prefix",
-      description: "nowy prefix (brak jeżeli chcesz tylko zobaczyć aktualny)",
+      description: "new prefix (none to show current)",
       type: ApplicationCommandOptionType.String,
       required: false
     })
@@ -73,24 +73,20 @@ export class Managment {
       const data = await this.db.getData("/guilds")
       const currentPrefix = data[guildId]?.prefix || process.env.DEF_PREFIX
 
-      return await replyHandler.reply(
-        `Aktualny prefix to: \`${currentPrefix}\``
-      )
+      return await replyHandler.reply(`Current prefix is: \`${currentPrefix}\``)
     }
 
     if (newPrefix.length > 1)
-      return await replyHandler.reply(
-        "Prefix może być tylko pojedynczym znakiem"
-      )
+      return await replyHandler.reply("Prefix can only be a single character")
 
     await this.db.push("/guilds", {
       [guildId]: { prefix: newPrefix }
     })
 
-    await replyHandler.reply(`Nowy prefix to: \`${newPrefix}\``)
+    await replyHandler.reply(`Setting prefix to: \`${newPrefix}\``)
   }
 
-  @DualCommand({ description: "wyswietla opisy komend i kategorii" })
+  @DualCommand({ description: "Shows description of command or categories" })
   async help(
     @SimpleCommandOption({
       name: "command",
@@ -98,7 +94,7 @@ export class Managment {
     })
     @SlashOption({
       name: "command",
-      description: "po podaniu wyświetla opis danej komendy",
+      description: "command that should be described",
       type: ApplicationCommandOptionType.String,
       required: false
     })
@@ -118,7 +114,7 @@ export class Managment {
       targetCmd?.options[0].name
 
       if (!targetCmd) {
-        await replyHandler.reply(`Komenda ${command} nie istnieje`)
+        await replyHandler.reply(`Command ${command} does not exist`)
         return
       }
 
@@ -126,11 +122,12 @@ export class Managment {
 
       emb.setTitle(`${targetCmd.discord.name} > ${targetCmd.name}:`).addFields([
         {
-          name: "Opis:",
-          value: targetCmd.description || "Ta komenda nie ma opisu"
+          name: "Description:",
+          value:
+            targetCmd.description || "This command does not have a description"
         },
         {
-          name: "Używanie:",
+          name: "Usage:",
           value: "```\n" + `/${targetCmd.name} ${usage}` + "\n```"
         }
       ])
@@ -145,7 +142,7 @@ export class Managment {
         })
       }
 
-      emb.setFooter({ text: "/help {nazwa komendy}" })
+      emb.setFooter({ text: "/help {command name}" })
     }
 
     await replyHandler.reply({ embeds: [emb] })

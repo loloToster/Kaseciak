@@ -16,7 +16,7 @@ import {
 } from "discordx"
 
 import { Category } from "@discordx/utilities"
-import { Pagination, PaginationType } from "@discordx/pagination"
+import { Pagination } from "@discordx/pagination"
 import { PlayerSearchResult } from "discord-player"
 
 import { injectable } from "tsyringe"
@@ -42,7 +42,7 @@ export class Music {
 
   @DualCommand({
     aliases: ["p"],
-    description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę"
+    description: "Plays or adds a song/playlist to the queue"
   })
   @Guard(onVoiceChannel)
   async play(
@@ -52,7 +52,7 @@ export class Music {
     })
     @SlashOption({
       name: "query",
-      description: "tytuł piosenki",
+      description: "song title",
       type: ApplicationCommandOptionType.String,
       required: false
     })
@@ -70,7 +70,7 @@ export class Music {
 
     if (!query) {
       if (!queue.playing) await queue.play()
-      await replyHandler.reply("Odtwarzam")
+      await replyHandler.reply("Playing...")
       return
     }
 
@@ -107,7 +107,9 @@ export class Music {
       const tracks = playlist.tracks
 
       const emb = new EmbedBuilder()
-        .setTitle(`Dodaję **${tracks.length}** utworów z **${playlist.title}**`)
+        .setTitle(
+          `Adding **${tracks.length}** songs from **${playlist.title}**`
+        )
         .setURL(playlist.url)
         // @ts-ignore
         .setThumbnail(playlist.thumbnail.url || playlist.thumbnail)
@@ -124,7 +126,7 @@ export class Music {
       const track = searchResult.tracks[0]
 
       const emb = new EmbedBuilder()
-        .setTitle(`Dodaję **${track.title}**`)
+        .setTitle(`Adding **${track.title}**`)
         .setURL(track.url)
         .setThumbnail(track.thumbnail)
         .setDescription(track.author)
@@ -137,23 +139,23 @@ export class Music {
       if (playNext) queue.insert(track)
       else await queue.play(track)
     } else {
-      await replyHandler.reply(`❌ | Nie znalazłem piosenki **${query}**!`)
+      await replyHandler.reply(`❌ | Could not find **${query}**!`)
     }
   }
 
   @DualCommand({
     aliases: ["s"],
-    description: "Skipuje obecną lub kilka piosenek"
+    description: "Skips current or multiple songs"
   })
   @Guard(onVoiceChannel)
   async skip(
     @SimpleCommandOption({
-      name: "ilosc",
+      name: "amount",
       type: SimpleCommandOptionType.Number
     })
     @SlashOption({
-      name: "ilosc",
-      description: "ilość piosenek do skipnięcia",
+      name: "amount",
+      description: "amount of songs to skip",
       type: ApplicationCommandOptionType.Integer,
       required: false
     })
@@ -166,25 +168,25 @@ export class Music {
     const queue = this.player.getQueue(replyHandler.guild)
 
     if (!queue || !queue.playing)
-      return replyHandler.reply("Nie ma czego skipnąć")
+      return await replyHandler.reply("Could not skip")
 
     if (amount !== undefined && amount > 1) {
       if (amount > queue.tracks.length) amount = queue.tracks.length
       queue.skipTo(amount - 1)
-      await replyHandler.reply(`Skipuje **${amount}** piosenek`)
+      await replyHandler.reply(`Skipping **${amount}** songs`)
       return
     }
 
     const success = queue.skip()
 
     await replyHandler.reply(
-      success ? `Skipuje **${queue.current.title}**` : "Coś się pokićkało"
+      success ? `Skipping **${queue.current.title}**` : "Something went wrong"
     )
   }
 
   @DualCommand({
     aliases: ["prev", "previous"],
-    description: "Cofa do poprzedniej piosenki"
+    description: "Rewinds to the previous song"
   })
   @Guard(onVoiceChannel)
   async back(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
@@ -195,10 +197,10 @@ export class Music {
 
     await queue?.back()
 
-    await replyHandler.reply("Cofam")
+    await replyHandler.reply("Rewinding")
   }
 
-  @DualCommand({ description: "Pauzuje piosenkę" })
+  @DualCommand({ description: "Pauses the song" })
   @Guard(onVoiceChannel)
   async pause(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
@@ -208,10 +210,10 @@ export class Music {
 
     queue?.setPaused(true)
 
-    await replyHandler.reply("Pauzuję")
+    await replyHandler.reply("Pausing")
   }
 
-  @DualCommand({ description: "Kontunuuje odtwarzanie piosenki" })
+  @DualCommand({ description: "Resumes the song" })
   @Guard(onVoiceChannel)
   async resume(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
@@ -221,19 +223,19 @@ export class Music {
 
     queue?.setPaused(false)
 
-    await replyHandler.reply("Wznawiam")
+    await replyHandler.reply("Resuming")
   }
 
-  @DualCommand({ description: "Przewija piosenkę do konkretnego momentu" })
+  @DualCommand({ description: "Rewinds the song to a specific moment" })
   @Guard(onVoiceChannel)
   async seek(
     @SimpleCommandOption({
-      name: "sekundy",
+      name: "seconds",
       type: SimpleCommandOptionType.Number
     })
     @SlashOption({
-      name: "sekundy",
-      description: "do której sekundy ma być przewinięta piosenka",
+      name: "seconds",
+      description: "what second the song should be rewound to",
       type: ApplicationCommandOptionType.Integer,
       required: true
     })
@@ -246,18 +248,18 @@ export class Music {
     const queue = this.player.getQueue(replyHandler.guild)
 
     if (typeof seconds !== "number")
-      return await replyHandler.reply("Podaj sekundy")
+      return await replyHandler.reply("Provide seconds")
 
     const secsInMs = seconds * 1000
 
     if (queue && (await queue.seek(secsInMs))) {
-      await replyHandler.reply(`Przewijam do ${seconds} sekund`)
+      await replyHandler.reply(`Rewinding to ${seconds} second`)
     } else {
-      await replyHandler.reply("Nie zdołałem przewinąć")
+      await replyHandler.reply("Could not rewind")
     }
   }
 
-  @DualCommand({ description: "Czyści kolejkę" })
+  @DualCommand({ description: "Clears the queue" })
   @Guard(onVoiceChannel)
   async clear(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
@@ -267,10 +269,10 @@ export class Music {
 
     queue?.clear()
 
-    await replyHandler.reply("Kolejka wyczyszczona 🗑️")
+    await replyHandler.reply("Queue cleared 🗑️")
   }
 
-  @DualCommand({ description: "Tasuje kolejkę" })
+  @DualCommand({ description: "Shuffles the queue" })
   @Guard(onVoiceChannel)
   async shuffle(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
@@ -280,10 +282,10 @@ export class Music {
 
     queue?.shuffle()
 
-    await replyHandler.reply("Zshufflowałem piosenki 🔀")
+    await replyHandler.reply("Queue shuffled 🔀")
   }
 
-  @DualCommand({ description: "Zatrzymuje bota i kasuje kolejke" })
+  @DualCommand({ description: "Stops the bot and deletes the queue" })
   @Guard(onVoiceChannel)
   async stop(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
@@ -293,12 +295,12 @@ export class Music {
 
     queue?.destroy(true)
 
-    await replyHandler.reply("Zatrzymałem i skasowałem kolejke")
+    await replyHandler.reply("Stopped and deleted the queue")
   }
 
   @DualCommand({
     aliases: ["q"],
-    description: "Wyświetla kolejkę"
+    description: "Show the queue"
   })
   @Guard(isGuild)
   async queue(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
@@ -307,7 +309,7 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    if (!queue) return await replyHandler.reply("Kolejka nie istnieje")
+    if (!queue) return await replyHandler.reply("Queue does not exist")
 
     const pages: EmbedBuilder[] = []
 
@@ -332,28 +334,21 @@ export class Music {
               )
               .join("\n")
           )
-          .setFooter({ text: `Strona ${chunkNumber + 1}/${numberOfChunks}` })
+          .setFooter({ text: `Page ${chunkNumber + 1}/${numberOfChunks}` })
       )
     }
 
-    if (!pages.length) return await replyHandler.reply("Kolejka jest pusta")
+    if (!pages.length) return await replyHandler.reply("Queue is empty")
 
-    new Pagination(
+    await new Pagination(
       replyHandler,
-      pages.map(p => ({ embeds: [p] })),
-      {
-        type: PaginationType.Button,
-        start: { label: "Początek" },
-        previous: { label: "Poprzednia" },
-        next: { label: "Następna" },
-        end: { label: "Koniec" }
-      }
+      pages.map(p => ({ embeds: [p] }))
     ).send()
   }
 
   @DualCommand({
-    aliases: ["l", "tekst"],
-    description: "Wyszukuje tekst piosenki"
+    aliases: ["l"],
+    description: "Searches for the lyrics of a song"
   })
   async lyrics(
     @SimpleCommandOption({
@@ -362,7 +357,7 @@ export class Music {
     })
     @SlashOption({
       name: "query",
-      description: "tytuł piosenki",
+      description: "song title",
       type: ApplicationCommandOptionType.String,
       required: false
     })
@@ -372,13 +367,13 @@ export class Music {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!query) {
       if (!replyHandler.guild) {
-        return await replyHandler.reply("Podaj tytuł piosenki")
+        return await replyHandler.reply("Provide song title")
       }
 
       const queue = this.player.getQueue(replyHandler.guild)
 
       if (!queue?.current) {
-        return await replyHandler.reply("Nic nie jest odtwarzane")
+        return await replyHandler.reply("Nothing is being played right now")
       }
 
       query = `${queue.current.title} ${queue.current.author}`
@@ -387,7 +382,7 @@ export class Music {
     if (interactionOrMsg instanceof CommandInteraction) {
       await interactionOrMsg.deferReply()
     } else {
-      await replyHandler.reply("Szukam: " + query)
+      await replyHandler.reply("Searching: " + query)
     }
 
     const lyrics: string | undefined = await getLyrics(query)
@@ -396,11 +391,11 @@ export class Music {
       ? {
         embeds: [
           new EmbedBuilder()
-            .setTitle("Wyniki zapytania: " + query)
+            .setTitle("Results for: " + query)
             .setDescription(lyrics)
         ]
       }
-      : "Nie znalazłem tekstu"
+      : "Could not find the lyrics"
 
     if (interactionOrMsg instanceof CommandInteraction) {
       await interactionOrMsg.editReply(msgPayload)
@@ -411,7 +406,7 @@ export class Music {
 
   @DualCommand({
     name: "player",
-    description: "Wysyła lub usuwa kontroler odtwarzania"
+    description: "Starts or stops the music controller"
   })
   @Guard(isGuild)
   async musicControllerHandler(
@@ -425,14 +420,14 @@ export class Music {
     const queue = this.player.getQueue(replyHandler.guild)
 
     if (!queue) {
-      return await replyHandler.reply("Kolejka nie istnieje")
+      return await replyHandler.reply("Queue does not exist")
     }
 
     const controllerExists = Boolean(queue.metadata?.musiccontroller)
 
     if (interactionOrMsg instanceof CommandInteraction) {
       await interactionOrMsg.reply(
-        controllerExists ? "Zamykam odtwarzacz" : "Otwieram odtwarzacz"
+        controllerExists ? "Closing the controller" : "Opening a controller"
       )
     }
 

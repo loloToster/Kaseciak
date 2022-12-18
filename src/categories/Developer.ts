@@ -14,7 +14,7 @@ import { Database } from "../modules/database"
 export class Developer {
   constructor(private db: Database) {}
 
-  @DualCommand({ description: "exites the bot process" })
+  @DualCommand({ description: "Exites the bot process" })
   async exit(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
 
@@ -25,7 +25,7 @@ export class Developer {
     }
   }
 
-  @DualCommand({ name: "reload-db", description: "reloads the db" })
+  @DualCommand({ name: "reload-db", description: "Reloads the db" })
   async reloadDb(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
 

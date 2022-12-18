@@ -15,7 +15,7 @@ const onVoiceChannel: GuardFunction = async (
     next()
   } else {
     await replyHandler.reply(
-      "Musisz być na kanale głosowym aby użyć tej komendy"
+      "You have to be on a voice channel to use this command"
     )
   }
 }

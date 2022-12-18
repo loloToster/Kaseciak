@@ -113,7 +113,7 @@ export default class MusicController<M = unknown> {
         break
     }
 
-    this.lastAction = `${interaction.user.username}#${interaction.user.discriminator} kliknał: \`${interaction.component.emoji?.name}\``
+    this.lastAction = `${interaction.user.username}#${interaction.user.discriminator} used: \`${interaction.component.emoji?.name}\``
 
     await this.refresh()
 
@@ -192,7 +192,7 @@ export default class MusicController<M = unknown> {
       const user = track.requestedBy
       if (user)
         emb.setAuthor({
-          name: `Dodane przez: ${user.username}#${user.discriminator}`,
+          name: `Added by: ${user.username}#${user.discriminator}`,
           iconURL: user.avatarURL() ?? undefined
         })
 
@@ -214,7 +214,7 @@ export default class MusicController<M = unknown> {
       const prevTrack = queue.previousTracks.at(-2)
       if (prevTrack)
         emb.addFields({
-          name: "Poprzednia:",
+          name: "Previous:",
           value: `${prevTrack.title} \`${prevTrack.author}\``,
           inline: true
         })
@@ -222,12 +222,12 @@ export default class MusicController<M = unknown> {
       const nextTrack = queue.tracks[0]
       if (nextTrack)
         emb.addFields({
-          name: "Następna:",
+          name: "Next:",
           value: `${nextTrack.title} \`${nextTrack.author}\``,
           inline: true
         })
     } else {
-      emb.setTitle("Nic nie jest odtwarzane")
+      emb.setTitle("Nothing is being played")
     }
 
     return emb

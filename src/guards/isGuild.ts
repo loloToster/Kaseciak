@@ -13,7 +13,7 @@ const isGuild: GuardFunction = async (
   if (replyHandler.guild) {
     next()
   } else {
-    await replyHandler.reply("Ta komenda może być użyta tylko na serwerze")
+    await replyHandler.reply("This command can only be used on a server")
   }
 }
 
