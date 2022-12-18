@@ -121,6 +121,8 @@ export default class MusicController<M = unknown> {
   }
 
   private async _resendHandler(msg: Message) {
+    if (this.msgLock.isBusy("")) return
+
     return await this.msgLock.acquire("", async () => {
       if (
         this.deleted || // the controller is deleted
@@ -176,6 +178,7 @@ export default class MusicController<M = unknown> {
 
     await this.msgLock.acquire("", async () => {
       await this.msg?.delete()
+      this.msg = null
     })
   }
 
