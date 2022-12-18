@@ -25,7 +25,6 @@ export interface MusicControllerOptions {
 export default class MusicController<M = unknown> {
   player: Player
   channel: TextChannel
-  refreshInterval: number
 
   lastAction: string
   deleted: boolean
@@ -33,13 +32,13 @@ export default class MusicController<M = unknown> {
   private msg: Message | null
   private msgLock: AsyncLock
   private listeners: Array<[string, (...x: any[]) => any]>
-  private resendInterval: NodeJS.Timer
+  private refreshInterval: NodeJS.Timer
 
   constructor(opts: MusicControllerOptions) {
     this.player = opts.player
     this.channel = opts.channel
-    this.refreshInterval = opts.refreshInterval ?? 5000
 
+    opts.refreshInterval = opts.refreshInterval ?? 5000
     opts.autoresend = opts.autoresend === undefined ? true : opts.autoresend
 
     this.deleted = false
@@ -49,9 +48,9 @@ export default class MusicController<M = unknown> {
     this.msgLock = new AsyncLock()
     this.listeners = []
 
-    this.resendInterval = setInterval(
+    this.refreshInterval = setInterval(
       this.refresh.bind(this),
-      this.refreshInterval
+      opts.refreshInterval
     )
 
     this.addPlayerListener("trackStart", this.refresh)
@@ -63,7 +62,9 @@ export default class MusicController<M = unknown> {
   }
 
   get queue() {
-    return this.player.getQueue<M>(this.channel.guildId)
+    const queue = this.player.getQueue<M>(this.channel.guildId)
+    if (!queue) this.delete()
+    return queue
   }
 
   private addPlayerListener<K extends keyof PlayerEvents>(
@@ -168,7 +169,7 @@ export default class MusicController<M = unknown> {
 
   async delete() {
     this.deleted = true
-    clearInterval(this.resendInterval)
+    clearInterval(this.refreshInterval)
 
     // remove all listeners
     this.listeners.forEach(([ev, l]) => {
