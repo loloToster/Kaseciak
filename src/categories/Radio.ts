@@ -6,7 +6,6 @@ import {
   ApplicationCommandOptionType,
   Collection,
   CommandInteraction,
-  GuildMember,
   UserResolvable
 } from "discord.js"
 import {
@@ -22,7 +21,7 @@ import { Category } from "@discordx/utilities"
 import { Track, Queue } from "discord-player"
 
 import { CustomMetadata, Player } from "../modules/player"
-import DualCommand, { getReplyHandler } from "../utils/DualCommand"
+import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
 
 import {
   stations,
@@ -109,7 +108,7 @@ export class Radio {
             .map(t => t.url)
             .includes(track.url)
 
-          if (!isTrackInQueue) queue.addTrack(track)
+          if (!isTrackInQueue) queue.play(track)
         }
       }
     }, 20 * 1000)
@@ -135,8 +134,9 @@ export class Radio {
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
     const replyHandler = getReplyHandler(interactionOrMsg)
-    if (!replyHandler.guild || !(replyHandler.member instanceof GuildMember))
-      return
+    if (!replyHandler.guild) return
+    const member = getMember(interactionOrMsg)
+    if (!member) return
 
     if (!stationNames.includes(station))
       return await replyHandler.reply("Nie znam stacji: " + station)
@@ -144,9 +144,11 @@ export class Radio {
     const queue = this.player.createDefaultQueue(replyHandler.guild)
 
     queue.metadata?.radios.push({
-      author: replyHandler.member.user,
+      author: member.user,
       name: station
     })
+
+    await this.player.joinVC(member, replyHandler.guild)
 
     await replyHandler.reply("Dodaję stacje: " + station)
   }
