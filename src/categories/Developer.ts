@@ -1,24 +1,11 @@
 import { injectable } from "tsyringe"
 import { CommandInteraction } from "discord.js"
-import { Discord, Guard, GuardFunction, SimpleCommandMessage } from "discordx"
+import { Discord, Guard, SimpleCommandMessage } from "discordx"
 import { Category } from "@discordx/utilities"
 import DualCommand, { getReplyHandler } from "../utils/DualCommand"
 
+import isOwner from "../guards/isOwner"
 import { Database } from "../modules/database"
-
-const isOwner: GuardFunction = async (
-  interactionOrMsg: CommandInteraction | SimpleCommandMessage,
-  client,
-  next
-) => {
-  const authorId =
-    interactionOrMsg instanceof CommandInteraction
-      ? interactionOrMsg.user.id
-      : interactionOrMsg.message.author.id
-
-  await client.application?.fetch()
-  if (authorId === client.application?.owner?.id) next()
-}
 
 @Discord()
 @injectable()

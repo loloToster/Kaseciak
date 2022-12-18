@@ -8,6 +8,7 @@ import {
 
 import {
   Discord,
+  Guard,
   SimpleCommandMessage,
   SimpleCommandOption,
   SimpleCommandOptionType,
@@ -29,6 +30,8 @@ import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
 import ytMusicToTracks from "../utils/ytMusicToTracks"
 import MusicController from "../utils/MusicController"
 
+import isGuild from "../guards/isGuild"
+import onVoiceChannel from "../guards/onVoiceChannel"
 import { CustomMetadata, Player } from "../modules/player"
 
 @Discord()
@@ -41,6 +44,7 @@ export class Music {
     aliases: ["p"],
     description: "Odtwarza lub dodaje do kolejki podaną piosenkę/playlistę"
   })
+  @Guard(onVoiceChannel)
   async play(
     @SimpleCommandOption({
       name: "query",
@@ -66,6 +70,7 @@ export class Music {
 
     if (!query) {
       if (!queue.playing) await queue.play()
+      await replyHandler.reply("Odtwarzam")
       return
     }
 
@@ -140,6 +145,7 @@ export class Music {
     aliases: ["s"],
     description: "Skipuje obecną lub kilka piosenek"
   })
+  @Guard(onVoiceChannel)
   async skip(
     @SimpleCommandOption({
       name: "ilosc",
@@ -180,6 +186,7 @@ export class Music {
     aliases: ["prev", "previous"],
     description: "Cofa do poprzedniej piosenki"
   })
+  @Guard(onVoiceChannel)
   async back(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -192,6 +199,7 @@ export class Music {
   }
 
   @DualCommand({ description: "Pauzuje piosenkę" })
+  @Guard(onVoiceChannel)
   async pause(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -204,6 +212,7 @@ export class Music {
   }
 
   @DualCommand({ description: "Kontunuuje odtwarzanie piosenki" })
+  @Guard(onVoiceChannel)
   async resume(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -216,6 +225,7 @@ export class Music {
   }
 
   @DualCommand({ description: "Przewija piosenkę do konkretnego momentu" })
+  @Guard(onVoiceChannel)
   async seek(
     @SimpleCommandOption({
       name: "sekundy",
@@ -248,6 +258,7 @@ export class Music {
   }
 
   @DualCommand({ description: "Czyści kolejkę" })
+  @Guard(onVoiceChannel)
   async clear(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -260,6 +271,7 @@ export class Music {
   }
 
   @DualCommand({ description: "Tasuje kolejkę" })
+  @Guard(onVoiceChannel)
   async shuffle(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -272,6 +284,7 @@ export class Music {
   }
 
   @DualCommand({ description: "Zatrzymuje bota i kasuje kolejke" })
+  @Guard(onVoiceChannel)
   async stop(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -287,6 +300,7 @@ export class Music {
     aliases: ["q"],
     description: "Wyświetla kolejkę"
   })
+  @Guard(isGuild)
   async queue(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -356,13 +370,16 @@ export class Music {
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
     const replyHandler = getReplyHandler(interactionOrMsg)
-    if (!replyHandler.guild) return
-
     if (!query) {
+      if (!replyHandler.guild) {
+        return await replyHandler.reply("Podaj tytuł piosenki")
+      }
+
       const queue = this.player.getQueue(replyHandler.guild)
 
-      if (!queue?.current)
+      if (!queue?.current) {
         return await replyHandler.reply("Nic nie jest odtwarzane")
+      }
 
       query = `${queue.current.title} ${queue.current.author}`
     }
@@ -396,6 +413,7 @@ export class Music {
     name: "player",
     description: "Wysyła lub usuwa kontroler odtwarzania"
   })
+  @Guard(isGuild)
   async musicControllerHandler(
     interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {

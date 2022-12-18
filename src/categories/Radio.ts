@@ -10,6 +10,7 @@ import {
 } from "discord.js"
 import {
   Discord,
+  Guard,
   Once,
   SimpleCommandMessage,
   SimpleCommandOption,
@@ -20,8 +21,10 @@ import {
 import { Category } from "@discordx/utilities"
 import { Track, Queue } from "discord-player"
 
-import { CustomMetadata, Player } from "../modules/player"
 import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
+
+import onVoiceChannel from "../guards/onVoiceChannel"
+import { CustomMetadata, Player } from "../modules/player"
 
 import {
   stations,
@@ -118,6 +121,7 @@ export class Radio {
     aliases: ["r"],
     description: "Uruchamia dodawanie piosenek z radia"
   })
+  @Guard(onVoiceChannel)
   async radio(
     @SimpleCommandOption({
       name: "station",
@@ -158,6 +162,7 @@ export class Radio {
     aliases: ["rs"],
     description: "Zatrzymuje dodawanie piosenek z radia"
   })
+  @Guard(onVoiceChannel)
   async radioStop(interactionOrMsg: CommandInteraction | SimpleCommandMessage) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return

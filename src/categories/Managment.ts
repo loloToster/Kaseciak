@@ -20,6 +20,7 @@ import {
 import { Category, PermissionGuard } from "@discordx/utilities"
 import DualCommand, { getReplyHandler } from "../utils/DualCommand"
 
+import isGuild from "../guards/isGuild"
 import { Database } from "../modules/database"
 
 @Discord()
@@ -50,7 +51,7 @@ export class Managment {
   }
 
   @DualCommand({ description: "wyswietla aktualny prefix lub go ustawia" })
-  @Guard(PermissionGuard(["Administrator"]))
+  @Guard(isGuild, PermissionGuard(["Administrator"]))
   async prefix(
     @SimpleCommandOption({
       name: "new-prefix",
@@ -66,16 +67,11 @@ export class Managment {
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
     const replyHandler = getReplyHandler(interactionOrMsg)
-
-    if (!replyHandler.guildId)
-      return await replyHandler.reply(
-        "Ta komenda może być używana tylko na serwerze"
-      )
+    const guildId = replyHandler.guild!.id
 
     if (!newPrefix) {
       const data = await this.db.getData("/guilds")
-      const currentPrefix =
-        data[replyHandler.guildId]?.prefix || process.env.DEF_PREFIX
+      const currentPrefix = data[guildId]?.prefix || process.env.DEF_PREFIX
 
       return await replyHandler.reply(
         `Aktualny prefix to: \`${currentPrefix}\``
@@ -88,7 +84,7 @@ export class Managment {
       )
 
     await this.db.push("/guilds", {
-      [replyHandler.guildId]: { prefix: newPrefix }
+      [guildId]: { prefix: newPrefix }
     })
 
     await replyHandler.reply(`Nowy prefix to: \`${newPrefix}\``)
