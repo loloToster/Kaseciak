@@ -3,6 +3,7 @@ import { injectable } from "tsyringe"
 import {
   ApplicationCommandOptionType,
   CommandInteraction,
+  EmbedBuilder,
   Message
 } from "discord.js"
 
@@ -91,5 +92,66 @@ export class Managment {
     })
 
     await replyHandler.reply(`Nowy prefix to: \`${newPrefix}\``)
+  }
+
+  @DualCommand({ description: "wyswietla opisy komend i kategorii" })
+  async help(
+    @SimpleCommandOption({
+      name: "command",
+      type: SimpleCommandOptionType.String
+    })
+    @SlashOption({
+      name: "command",
+      description: "po podaniu wyświetla opis danej komendy",
+      type: ApplicationCommandOptionType.String,
+      required: false
+    })
+      command: string | undefined,
+      interactionOrMsg: CommandInteraction | SimpleCommandMessage,
+      client: Client
+  ) {
+    const replyHandler = getReplyHandler(interactionOrMsg)
+
+    const emb = new EmbedBuilder()
+
+    if (command) {
+      const targetCmd = client.applicationCommands.find(
+        cmd => cmd.name === command
+      )
+
+      targetCmd?.options[0].name
+
+      if (!targetCmd) {
+        await replyHandler.reply(`Komenda ${command} nie istnieje`)
+        return
+      }
+
+      const usage = targetCmd.options.map(opt => `{${opt.name}}`).join(" ")
+
+      emb.setTitle(`${targetCmd.discord.name} > ${targetCmd.name}:`).addFields([
+        {
+          name: "Opis:",
+          value: targetCmd.description || "Ta komenda nie ma opisu"
+        },
+        {
+          name: "Używanie:",
+          value: "```\n" + `/${targetCmd.name} ${usage}` + "\n```"
+        }
+      ])
+    } else {
+      for (const category of client.discords) {
+        emb.addFields({
+          name: `**${category.name}:**`,
+          value: category.applicationCommands.reduce((acc, cur) => {
+            return acc + `- ${cur.name}\n`
+          }, ""),
+          inline: false
+        })
+      }
+
+      emb.setFooter({ text: "/help {nazwa komendy}" })
+    }
+
+    await replyHandler.reply({ embeds: [emb] })
   }
 }
