@@ -49,6 +49,9 @@ async function main() {
   if (!process.env.TOKEN)
     throw Error("Could not find TOKEN in your environment")
 
+  if (!process.env.DEF_PREFIX)
+    throw Error("Could not find DEF_PREFIX in your environment")
+
   await bot.login(process.env.TOKEN)
 }
 
