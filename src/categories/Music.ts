@@ -3,7 +3,8 @@ import {
   CommandInteraction,
   EmbedBuilder,
   HexColorString,
-  TextChannel
+  TextChannel,
+  User
 } from "discord.js"
 
 import {
@@ -26,19 +27,78 @@ import getLyrics from "lyrics-finder"
 
 import { isValidUrl } from "../utils/isValidUrl"
 import getColor from "../utils/getColor"
-import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
+import DualCommand, {
+  getMember,
+  getReplyHandler,
+  getUser
+} from "../utils/DualCommand"
 import ytMusicToTracks from "../utils/ytMusicToTracks"
 import MusicController from "../utils/MusicController"
 
 import isGuild from "../guards/isGuild"
 import onVoiceChannel from "../guards/onVoiceChannel"
+
 import { CustomMetadata, Player } from "../modules/player"
+import { Database } from "../modules/database"
 
 @Discord()
 @injectable()
 @Category("Music")
 export class Music {
-  constructor(private player: Player) {}
+  constructor(private player: Player, private db: Database) {}
+
+  private async search(user: User, query: string, omitYTMusic: boolean) {
+    let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
+
+    const users = await this.db.getData("/users")
+    const useYTmusic = users[user.id] ? users[user.id].useYTmusic : true
+
+    omitYTMusic = omitYTMusic || !useYTmusic
+
+    if (!isValidUrl(query) && !omitYTMusic)
+      searchResult = await ytMusicToTracks(query, this.player, user)
+
+    if (!searchResult.tracks?.length)
+      searchResult = await this.player.search(query, {
+        requestedBy: user
+      })
+
+    return searchResult
+  }
+
+  @DualCommand({
+    name: "use-yt-music",
+    description: "Choose wheter you want to use yt music to search for songs"
+  })
+  async useYTMusic(
+    @SimpleCommandOption({
+      name: "choice",
+      type: SimpleCommandOptionType.Boolean
+    })
+    @SlashOption({
+      name: "choice",
+      description: "your choice",
+      type: ApplicationCommandOptionType.Boolean,
+      required: true
+    })
+      choice: boolean | undefined,
+      interactionOrMsg: CommandInteraction | SimpleCommandMessage
+  ) {
+    const replyHandler = getReplyHandler(interactionOrMsg)
+    const user = getUser(interactionOrMsg)
+
+    choice = choice ?? true
+
+    await this.db.push("/users", {
+      [user.id]: { useYTmusic: choice }
+    })
+
+    await replyHandler.reply(
+      choice
+        ? "From now you will use YT music to search for songs"
+        : "From now you will not use YT music to search for songs"
+    )
+  }
 
   @DualCommand({
     aliases: ["p"],
@@ -91,15 +151,11 @@ export class Music {
 
     query = splittedQuery.join(" ")
 
-    let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
-
-    if (!isValidUrl(query) && !noYTmusic)
-      searchResult = await ytMusicToTracks(query, this.player, member)
-
-    if (!searchResult.tracks?.length)
-      searchResult = await this.player.search(query, {
-        requestedBy: member
-      })
+    const searchResult = await this.search(
+      getUser(interactionOrMsg),
+      query,
+      noYTmusic
+    )
 
     const playlist = searchResult.playlist
 

@@ -12,6 +12,8 @@ const dbPath = existsSync(`${projectRoot}/data`)
 export class Database extends JsonDB {
   constructor() {
     super(new Config(dbPath))
+
     this.push("/guilds", {}, false)
+    this.push("/users", {}, false)
   }
 }

@@ -15,6 +15,13 @@ export function getReplyHandler(
     ? interactionOrMsg
     : interactionOrMsg.message
 }
+export function getUser(
+  interactionOrMsg: CommandInteraction | SimpleCommandMessage
+) {
+  return interactionOrMsg instanceof CommandInteraction
+    ? interactionOrMsg.user
+    : interactionOrMsg.message.author
+}
 
 export function getMember(
   interactionOrMsg: CommandInteraction | SimpleCommandMessage
