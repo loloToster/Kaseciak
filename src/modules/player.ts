@@ -1,5 +1,5 @@
 import { inject, singleton } from "tsyringe"
-import { Player as DiscordPlayer, Queue } from "discord-player"
+import { Player as DiscordPlayer } from "discord-player"
 import { Client } from "discordx"
 import { GuildMember, GuildResolvable, User } from "discord.js"
 
@@ -20,12 +20,12 @@ export class Player extends DiscordPlayer {
     super(client, { ytdlOptions: { quality: "lowestaudio" } })
   }
 
-  getQueue<T = CustomMetadata>(guild: GuildResolvable): Queue<T> | undefined {
-    return super.getQueue(guild)
+  getQueue<T = CustomMetadata>(guild: GuildResolvable) {
+    return this.nodes.get<T>(guild)
   }
 
   createDefaultQueue(guild: GuildResolvable) {
-    return super.createQueue<CustomMetadata>(guild, {
+    return this.nodes.create<CustomMetadata>(guild, {
       metadata: { radios: [] },
       leaveOnEnd: false,
       leaveOnStop: false,
@@ -47,7 +47,7 @@ export class Player extends DiscordPlayer {
       if (!queue.connection) await queue.connect(member.voice.channelId)
       return true
     } catch {
-      queue.destroy()
+      queue.delete()
     }
 
     return false

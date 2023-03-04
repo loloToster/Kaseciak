@@ -10,7 +10,12 @@ import {
   MessageActionRowComponentBuilder,
   TextChannel
 } from "discord.js"
-import { Player, Queue, PlayerEvents } from "discord-player"
+import {
+  Player,
+  GuildQueue,
+  PlayerEvents,
+  GuildQueueEvents
+} from "discord-player"
 import AsyncLock from "async-lock"
 
 import getColor from "./getColor"
@@ -53,7 +58,7 @@ export default class MusicController<M = unknown> {
       opts.refreshInterval
     )
 
-    this.addPlayerListener("trackStart", this.refresh)
+    this.addPlayerListener("playerStart", this.refresh)
     this.addClientListener("interactionCreate", this._interactionHandler)
 
     if (opts.autoresend) {
@@ -62,18 +67,18 @@ export default class MusicController<M = unknown> {
   }
 
   get queue() {
-    const queue = this.player.getQueue<M>(this.channel.guildId)
+    const queue = this.player.nodes.get<M>(this.channel.guildId)
     if (!queue) this.delete()
     return queue
   }
 
-  private addPlayerListener<K extends keyof PlayerEvents>(
+  private addPlayerListener<K extends keyof GuildQueueEvents>(
     event: K,
-    listener: PlayerEvents[K]
+    listener: GuildQueueEvents[K]
   ) {
     const bindedListener = listener.bind(this)
     this.listeners.push([event, bindedListener])
-    this.player.on(event, listener)
+    this.player.events.on(event, listener)
   }
 
   private addClientListener<K extends keyof ClientEvents>(
@@ -96,19 +101,19 @@ export default class MusicController<M = unknown> {
 
     switch (interaction.customId) {
       case "shuffle":
-        this.queue.shuffle()
+        this.queue.tracks.shuffle()
         break
 
       case "prev":
-        await this.queue.back().catch(console.error)
+        await this.queue.history.back().catch(console.error)
         break
 
       case "pause-play":
-        this.queue.setPaused(!this.queue.connection.paused)
+        this.queue.node.setPaused(!this.queue.node.isPaused())
         break
 
       case "next":
-        this.queue.skip()
+        this.queue.node.skip()
         break
 
       default:
@@ -184,14 +189,13 @@ export default class MusicController<M = unknown> {
     })
   }
 
-  async createEmbed(queue: Queue | undefined) {
+  async createEmbed(queue: GuildQueue<M> | null) {
     const emb = new EmbedBuilder()
-    const track = queue?.current
+    const track = queue?.currentTrack
 
     if (track) {
-      const timestamps = queue.getPlayerTimestamp()
-
       const user = track.requestedBy
+
       if (user)
         emb.setAuthor({
           name: `Added by: ${user.username}#${user.discriminator}`,
@@ -204,16 +208,17 @@ export default class MusicController<M = unknown> {
         .setThumbnail(track.thumbnail)
         .addFields({
           name: track.author || "\u200b",
-          value: `${timestamps.current}┃${queue.createProgressBar({
-            length: 13
-          })}┃${timestamps.end}`,
+          value:
+            queue.node.createProgressBar({
+              length: 13
+            }) || "",
           inline: false
         })
 
       const color = await getColor(track.thumbnail, 500, track.id)
       if (color) emb.setColor(color as HexColorString)
 
-      const prevTrack = queue.previousTracks.at(-2)
+      const prevTrack = queue.history.previousTrack
       if (prevTrack)
         emb.addFields({
           name: "Previous:",
@@ -221,7 +226,7 @@ export default class MusicController<M = unknown> {
           inline: true
         })
 
-      const nextTrack = queue.tracks[0]
+      const nextTrack = queue.tracks.at(0)
       if (nextTrack)
         emb.addFields({
           name: "Next:",

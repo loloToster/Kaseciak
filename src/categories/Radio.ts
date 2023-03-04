@@ -19,7 +19,7 @@ import {
   SlashOption
 } from "discordx"
 import { Category } from "@discordx/utilities"
-import { Track, Queue } from "discord-player"
+import { Track, GuildQueue } from "discord-player"
 
 import DualCommand, { getMember, getReplyHandler } from "../utils/DualCommand"
 
@@ -82,9 +82,9 @@ export class Radio {
   onReady() {
     setInterval(async () => {
       const cache: Record<string, Track | null> = {}
-      const queues = this.player.queues as Collection<
+      const queues = this.player.queues.cache as Collection<
         string,
-        Queue<CustomMetadata>
+        GuildQueue<CustomMetadata>
       >
 
       for (const queue of queues.values()) {
@@ -98,6 +98,7 @@ export class Radio {
             if (track) {
               track = new Track(this.player, {
                 ...track,
+                queryType: track.queryType ?? undefined,
                 requestedBy: station.author
               })
             }
@@ -107,11 +108,15 @@ export class Radio {
 
           if (!track) continue
 
-          const isTrackInQueue = [...queue.previousTracks, ...queue.tracks]
-            .map(t => t.url)
-            .includes(track.url)
+          const allTracks = [
+            queue.currentTrack,
+            ...queue.history.tracks.toArray(),
+            ...queue.tracks.toArray()
+          ]
 
-          if (!isTrackInQueue) queue.play(track)
+          const isTrackInQueue = allTracks.map(t => t?.url).includes(track.url)
+
+          if (!isTrackInQueue) queue.node.play(track)
         }
       }
     }, 20 * 1000)

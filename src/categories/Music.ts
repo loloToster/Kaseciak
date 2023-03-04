@@ -58,10 +58,14 @@ export class Music {
     if (!isValidUrl(query) && !omitYTMusic)
       searchResult = await ytMusicToTracks(query, this.player, user)
 
-    if (!searchResult.tracks?.length)
-      searchResult = await this.player.search(query, {
+    if (!searchResult.tracks?.length) {
+      const res = await this.player.search(query, {
         requestedBy: user
       })
+
+      searchResult.tracks = res.tracks
+      searchResult.playlist = res.playlist ?? null
+    }
 
     return searchResult
   }
@@ -129,7 +133,7 @@ export class Music {
     if (!(await this.player.joinVC(member, replyHandler.guild))) return
 
     if (!query) {
-      if (!queue.playing) await queue.play()
+      if (!queue.node.isPlaying()) await queue.node.play()
       await replyHandler.reply("Playing...")
       return
     }
@@ -176,8 +180,8 @@ export class Music {
 
       await replyHandler.reply({ embeds: [emb] })
 
-      await queue.play(tracks.shift())
-      queue.addTracks(tracks)
+      await queue.node.play(tracks.shift())
+      queue.addTrack(tracks)
     } else if (searchResult?.tracks[0]) {
       const track = searchResult.tracks[0]
 
@@ -192,8 +196,8 @@ export class Music {
 
       await replyHandler.reply({ embeds: [emb] })
 
-      if (playNext) queue.insert(track)
-      else await queue.play(track)
+      if (playNext) queue.insertTrack(track)
+      else await queue.node.play(track)
     } else {
       await replyHandler.reply(`❌ | Could not find **${query}**!`)
     }
@@ -223,20 +227,22 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    if (!queue || !queue.playing)
+    if (!queue || !queue.isPlaying())
       return await replyHandler.reply("Could not skip")
 
     if (amount !== undefined && amount > 1) {
-      if (amount > queue.tracks.length) amount = queue.tracks.length
-      queue.skipTo(amount - 1)
+      if (amount > queue.tracks.size) amount = queue.tracks.size
+      queue.node.skipTo(amount - 1)
       await replyHandler.reply(`Skipping **${amount}** songs`)
       return
     }
 
-    const success = queue.skip()
+    const success = queue.node.skip()
 
     await replyHandler.reply(
-      success ? `Skipping **${queue.current.title}**` : "Something went wrong"
+      success
+        ? `Skipping **${queue.currentTrack?.title}**`
+        : "Something went wrong"
     )
   }
 
@@ -251,7 +257,7 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    await queue?.back()
+    await queue?.history.back()
 
     await replyHandler.reply("Rewinding")
   }
@@ -264,7 +270,7 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    queue?.setPaused(true)
+    queue?.node.pause()
 
     await replyHandler.reply("Pausing")
   }
@@ -277,7 +283,7 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    queue?.setPaused(false)
+    queue?.node.resume()
 
     await replyHandler.reply("Resuming")
   }
@@ -308,7 +314,7 @@ export class Music {
 
     const secsInMs = seconds * 1000
 
-    if (queue && (await queue.seek(secsInMs))) {
+    if (queue && (await queue.node.seek(secsInMs))) {
       await replyHandler.reply(`Rewinding to ${seconds} second`)
     } else {
       await replyHandler.reply("Could not rewind")
@@ -336,7 +342,7 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    queue?.shuffle()
+    queue?.tracks.shuffle()
 
     await replyHandler.reply("Queue shuffled 🔀")
   }
@@ -349,7 +355,7 @@ export class Music {
 
     const queue = this.player.getQueue(replyHandler.guild)
 
-    queue?.destroy(true)
+    queue?.delete()
 
     await replyHandler.reply("Stopped and deleted the queue")
   }
@@ -370,14 +376,15 @@ export class Music {
     const pages: EmbedBuilder[] = []
 
     const chunkSize = 10
-    const numberOfChunks = Math.ceil(queue.tracks.length / chunkSize)
+    const numberOfChunks = Math.ceil(queue.tracks.size / chunkSize)
 
     for (
       let i = 0, chunkNumber = 0;
-      i < queue.tracks.length;
+      i < queue.tracks.size;
       i += chunkSize, chunkNumber++
     ) {
-      const chunk = queue.tracks.slice(i, i + chunkSize)
+      const chunk = queue.tracks.toArray().slice(i, i + chunkSize)
+
       pages.push(
         new EmbedBuilder()
           .setDescription(
@@ -428,11 +435,11 @@ export class Music {
 
       const queue = this.player.getQueue(replyHandler.guild)
 
-      if (!queue?.current) {
+      if (!queue?.currentTrack) {
         return await replyHandler.reply("Nothing is being played right now")
       }
 
-      query = `${queue.current.title} ${queue.current.author}`
+      query = `${queue.currentTrack.title} ${queue.currentTrack.author}`
     }
 
     if (interactionOrMsg instanceof CommandInteraction) {
