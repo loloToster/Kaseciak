@@ -1,5 +1,5 @@
 ## build runner
-FROM --platform=linux/arm/v7 node:16-alpine as build-runner
+FROM node:16-slim as build-runner
 
 # Set temp directory
 WORKDIR /tmp/app
@@ -18,7 +18,7 @@ COPY tsconfig.json   .
 RUN npm run build
 
 ## production runner
-FROM --platform=linux/arm/v7 node:16-alpine as prod-runner
+FROM node:16-slim as prod-runner
 
 # Set work directory
 WORKDIR /app
