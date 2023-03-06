@@ -49,8 +49,14 @@ async function main() {
   if (!process.env.TOKEN)
     throw Error("Could not find TOKEN in your environment")
 
-  if (!process.env.DEF_PREFIX)
-    throw Error("Could not find DEF_PREFIX in your environment")
+  const DEF_DEF_PREFIX = ">"
+  if (!process.env.DEF_PREFIX) {
+    console.warn(
+      `Could not find DEF_PREFIX in your environment. Setting it to: '${DEF_DEF_PREFIX}'`
+    )
+
+    process.env.DEF_PREFIX = DEF_DEF_PREFIX
+  }
 
   await bot.login(process.env.TOKEN)
 }
