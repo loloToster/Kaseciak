@@ -1,15 +1,15 @@
 <br>
 <br>
 <p align="center">
-<img src="logo.png" alt="kaseciak logo" width="75%">
+<img src="readme/logo.png" alt="kaseciak logo" width="75%">
 </p>
 <br>
 
 ## Features
 
 * 🎵 Play songs from YouTube, Youtube Music, Spotify and more
-* 🔍 Search for a song via a query or link
-* 🎼 Play playlists from many platforms
+* 🔍 Search for a song or playlist via a query or link
+* 🎼 View playback in an embed and control it using buttons
 * 📻 Listen to music from polish radios like [RMF FM](https://www.rmf.fm/) or [Eska](https://www.eska.pl/)
 * 🦾 Full support for slash commands
 * <details>
@@ -67,6 +67,14 @@
 
 </details>
 
+---
+
+<img src="readme/preview1.png" width="100%" alt="play command example" />
+<img src="readme/preview2.png" width="100%" alt="player command example" />
+<img src="readme/preview3.png" width="100%" alt="queue command example" />
+
+---
+
 ## Requirements
 
 1. Get bot token as shown [here](https://discordjs.guide/preparations/setting-up-a-bot-application.html#creating-your-bot).\
@@ -103,4 +111,26 @@ To run this bot using docker you'll have to set an env variable `TOKEN` to the t
 docker run -e TOKEN=*your bot token here* -v ./data:/app/data --name kaseciak -d lolotoster/kaseciak
 ```
 
-<!-- TODO: add screenshots & docs about additional env variables -->
+You can also use docker compose
+
+```yml
+version: '3'
+
+services:
+  bot:
+    restart: always
+    image: lolotoster/kaseciak
+    environment:
+      - TOKEN=*your bot token here*
+    volumes:
+      - kaseciakdata:/app/data
+
+volumes:
+  kaseciakdata:
+```
+
+## 🛠️ Additional settings
+
+Every setting described here is an env variable and should be put inside of your `.env` file.
+
+* `DEF_PREFIX`: this variable defines the default prefix for non-slash commands. It can be overwritten by using the [`prefix`](#managment) command. By default it is set to `>`
