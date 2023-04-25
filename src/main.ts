@@ -1,3 +1,4 @@
+import http from "http"
 import dotenv from "dotenv"
 
 import type { Interaction, Message } from "discord.js"
@@ -59,6 +60,16 @@ async function main() {
   }
 
   await bot.login(process.env.TOKEN)
+
+  // healthcheck
+  http
+    .createServer((req, res) => {
+      const status = bot.isReady() ? 200 : 500
+      res.writeHead(status, { "Content-Type": "text/plain" })
+      if (status === 200) res.write("OK")
+      res.end()
+    })
+    .listen(process.env.HEALTHCHECK_PORT || 80)
 }
 
 main()

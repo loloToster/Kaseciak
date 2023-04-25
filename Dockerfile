@@ -12,7 +12,7 @@ RUN npm install
 
 # Move source files
 COPY src ./src
-COPY tsconfig.json   .
+COPY tsconfig.json .
 
 # Build project
 RUN npm run build
@@ -31,6 +31,11 @@ RUN npm install --omit=dev
 
 # Move build files
 COPY --from=build-runner /tmp/app/build /app/build
+
+# Add healthcheck
+ENV HEALTHCHECK_PORT=80
+COPY healthcheck.js .
+HEALTHCHECK --start-period=30s --retries=1 --interval=10s CMD node healthcheck.js
 
 # Start bot
 CMD [ "npm", "run", "start" ]
