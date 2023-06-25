@@ -120,7 +120,7 @@ export default class MusicController<M = unknown> {
         break
     }
 
-    this.lastAction = `${interaction.user.username}#${interaction.user.discriminator} used: \`${interaction.component.emoji?.name}\``
+    this.lastAction = `${interaction.user.username} used: \`${interaction.component.emoji?.name}\``
 
     await this.refresh()
 
@@ -198,7 +198,7 @@ export default class MusicController<M = unknown> {
 
       if (user)
         emb.setAuthor({
-          name: `Added by: ${user.username}#${user.discriminator}`,
+          name: `Added by: ${user.username}`,
           iconURL: user.avatarURL() ?? undefined
         })
 
