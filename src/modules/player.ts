@@ -32,6 +32,8 @@ export class Player extends DiscordPlayer {
   constructor(@inject("client") client: Client) {
     super(client, { ytdlOptions: { quality: "lowestaudio" } })
 
+    this.extractors.loadDefault()
+
     if (process.env.SEARCH_PLATFORM) {
       if (SEARCH_PLATFORMS.includes(process.env.SEARCH_PLATFORM as any)) {
         this.SEARCH_PLATFORM = process.env.SEARCH_PLATFORM as SearchPlatform
