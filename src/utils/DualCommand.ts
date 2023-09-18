@@ -1,11 +1,17 @@
 import { CommandInteraction } from "discord.js"
-import { SimpleCommand, SimpleCommandMessage, Slash } from "discordx"
+import {
+  ArgSplitter,
+  SimpleCommand,
+  SimpleCommandMessage,
+  Slash
+} from "discordx"
 import { MethodDecoratorEx } from "@discordx/internal"
 
 export interface DualCommandOptions {
   name?: any
   aliases?: string[]
   description: string
+  argSplitter?: ArgSplitter
 }
 
 export function getReplyHandler(

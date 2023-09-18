@@ -106,7 +106,10 @@ export class Music {
 
   @DualCommand({
     aliases: ["p"],
-    description: "Plays or adds a song/playlist to the queue"
+    description: "Plays or adds a song/playlist to the queue",
+    argSplitter(command) {
+      return [command.argString]
+    }
   })
   @Guard(onVoiceChannel)
   async play(
@@ -411,7 +414,10 @@ export class Music {
 
   @DualCommand({
     aliases: ["l"],
-    description: "Searches for the lyrics of a song"
+    description: "Searches for the lyrics of a song",
+    argSplitter(command) {
+      return [command.argString]
+    }
   })
   async lyrics(
     @SimpleCommandOption({
