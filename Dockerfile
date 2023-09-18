@@ -1,12 +1,12 @@
-FROM node:16-slim as builder
+## build runner
+FROM node:16-slim as build-runner
 
-# Set work directory
-WORKDIR /app
+# Set temp directory
+WORKDIR /tmp/app
 
-# needed for opus library
 RUN apt-get update && apt-get -y install python3 build-essential
 
-# Move package.json & package-lock.json
+# Move package.json
 COPY package*.json .
 
 # Install dependencies
@@ -19,16 +19,23 @@ COPY tsconfig.json .
 # Build project
 RUN npm run build
 
-# Remove source code
-RUN rm tsconfig.json && rm -r ./src && rm -rf ./node_modules
+## production runner
+FROM node:16-slim as prod-runner
 
-ENV NODE_ENV=production
+# Set work directory
+WORKDIR /app
+
+# Copy package.json from build-runner
+COPY --from=build-runner /tmp/app/package*.json /app
 
 # Install dependencies
-RUN npm install --omit=dev
+RUN apt-get update && \
+    apt-get -y install python3 build-essential && \
+    npm install --omit=dev && \
+    apt-get -y remove build-essential python3
 
-# Remove build tools
-RUN apt-get -y remove build-essential python3
+# Move build files
+COPY --from=build-runner /tmp/app/build /app/build
 
 # Add healthcheck
 ENV HEALTHCHECK_PORT=80
