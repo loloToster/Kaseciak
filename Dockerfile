@@ -4,8 +4,6 @@ FROM node:16-slim as build-runner
 # Set temp directory
 WORKDIR /tmp/app
 
-RUN apt-get update && apt-get -y install python3 build-essential
-
 # Move package.json
 COPY package*.json .
 
@@ -28,11 +26,11 @@ WORKDIR /app
 # Copy package.json from build-runner
 COPY --from=build-runner /tmp/app/package*.json /app
 
+# Copy patches
+COPY patches ./patches
+
 # Install dependencies
-RUN apt-get update && \
-    apt-get -y install python3 build-essential && \
-    npm install --omit=dev && \
-    apt-get -y remove build-essential python3
+RUN npm install --omit=dev
 
 # Move build files
 COPY --from=build-runner /tmp/app/build /app/build

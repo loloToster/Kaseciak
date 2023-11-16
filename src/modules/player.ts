@@ -30,7 +30,23 @@ export class Player extends DiscordPlayer {
   SEARCH_PLATFORM: SearchPlatform
 
   constructor(@inject("client") client: Client) {
+    process.env.DP_FORCE_YTDL_MOD = "@distube/ytdl-core"
+    // custom env variable made with patch-package used in @discord-player/opus
+    process.env.OPUS_PACKAGE = "@evan/opus"
+
     super(client, { ytdlOptions: { quality: "lowestaudio" } })
+
+    this.on("error", err => {
+      console.error(err)
+    })
+
+    this.events.on("error", (q, err) => {
+      console.error(err)
+    })
+
+    this.events.on("playerError", (q, err) => {
+      console.error(err)
+    })
 
     this.extractors.loadDefault()
 
@@ -52,13 +68,15 @@ export class Player extends DiscordPlayer {
   }
 
   createDefaultQueue(guild: GuildResolvable) {
-    return this.nodes.create<CustomMetadata>(guild, {
+    const queue = this.nodes.create<CustomMetadata>(guild, {
       metadata: { radios: [] },
       leaveOnEnd: false,
       leaveOnStop: false,
       leaveOnEmptyCooldown: 5 * 60 * 1000,
       bufferingTimeout: 500
     })
+
+    return queue
   }
 
   async joinVC(

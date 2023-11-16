@@ -1,0 +1,19 @@
+diff --git a/node_modules/@discord-player/opus/dist/index.js b/node_modules/@discord-player/opus/dist/index.js
+index e0d368d..8cae908 100644
+--- a/node_modules/@discord-player/opus/dist/index.js
++++ b/node_modules/@discord-player/opus/dist/index.js
+@@ -31,6 +31,14 @@ __export(src_exports, {
+ module.exports = __toCommonJS(src_exports);
+ var import_stream = require("stream");
+ var loadModule = /* @__PURE__ */ __name((modules) => {
++  // fix `discord-player` using unwanted opus packages with patch-package
++  const priorityPackageName = process.env.OPUS_PACKAGE;
++  const priorityPackage = modules.find(([name]) => name === priorityPackageName);
++
++  if (priorityPackage) {
++    modules = [priorityPackage, ...modules.filter(([name]) => name !== priorityPackageName)];
++  }
++
+   const errors = [];
+   for (const [name, fn] of modules) {
+     try {
