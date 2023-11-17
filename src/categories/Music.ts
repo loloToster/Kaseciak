@@ -19,11 +19,9 @@ import {
 import { Category } from "@discordx/utilities"
 import { Pagination } from "@discordx/pagination"
 import { PlayerSearchResult } from "discord-player"
+import { lyricsExtractor } from "@discord-player/extractor"
 
 import { injectable } from "tsyringe"
-
-// @ts-ignore: Could not find a declaration file for module 'lyrics-finder'
-import getLyrics from "lyrics-finder"
 
 import { isValidUrl } from "../utils/isValidUrl"
 import getColor from "../utils/getColor"
@@ -40,6 +38,8 @@ import onVoiceChannel from "../guards/onVoiceChannel"
 
 import { CustomMetadata, Player } from "../modules/player"
 import { Database } from "../modules/database"
+
+const lyricsClient = lyricsExtractor()
 
 @Discord()
 @injectable()
@@ -463,14 +463,14 @@ export class Music {
       await replyHandler.reply("Searching: " + query)
     }
 
-    const lyrics: string | undefined = await getLyrics(query)
+    const lyricsData = await lyricsClient.search(query)
 
-    const msgPayload = lyrics
+    const msgPayload = lyricsData
       ? {
         embeds: [
           new EmbedBuilder()
             .setTitle("Results for: " + query)
-            .setDescription(lyrics)
+            .setDescription(lyricsData.lyrics)
         ]
       }
       : "Could not find the lyrics"
