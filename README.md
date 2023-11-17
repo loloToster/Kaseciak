@@ -28,6 +28,7 @@
     | Name | Options | Description |
     |-|-|-|
     | play | `query:optional` | Plays or adds a song/playlist to the queue |
+    | playnext | `query` | Plays or adds a song/playlist as next to the queue |
     | queue |  | Shows the queue |
     | clear |  | Clears the queue |
     | skip | `amount:number:optional` | Skips current or multiple songs |

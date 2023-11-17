@@ -47,15 +47,13 @@ import { Database } from "../modules/database"
 export class Music {
   constructor(private player: Player, private db: Database) {}
 
-  private async search(user: User, query: string, omitYTMusic: boolean) {
+  private async search(user: User, query: string) {
     let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
 
     const users = await this.db.getData("/users")
     const useYTmusic = users[user.id] ? users[user.id].useYTmusic : true
 
-    omitYTMusic = omitYTMusic || !useYTmusic
-
-    if (!isValidUrl(query) && !omitYTMusic)
+    if (!isValidUrl(query) && useYTmusic)
       searchResult = await ytMusicToTracks(query, this.player, user)
 
     if (!searchResult.tracks?.length) {
@@ -124,7 +122,8 @@ export class Music {
       required: false
     })
       query: string | undefined,
-      interactionOrMsg: CommandInteraction | SimpleCommandMessage
+      interactionOrMsg: CommandInteraction | SimpleCommandMessage,
+      playNext = false
   ) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     if (!replyHandler.guild) return
@@ -141,28 +140,7 @@ export class Music {
       return
     }
 
-    const splittedQuery = query.split(/ +/g)
-
-    let playNext = false
-    let noYTmusic = false
-
-    // process flags:
-    for (let i = splittedQuery.length - 1; i >= 0; i--) {
-      const arg = splittedQuery[i]
-      if (arg.startsWith("-")) {
-        const flag = splittedQuery.pop()?.substring(1)
-        if (flag == "n") playNext = true
-        else if (flag == "nytm") noYTmusic = true
-      } else break
-    }
-
-    query = splittedQuery.join(" ")
-
-    const searchResult = await this.search(
-      getUser(interactionOrMsg),
-      query,
-      noYTmusic
-    )
+    const searchResult = await this.search(getUser(interactionOrMsg), query)
 
     const playlist = searchResult.playlist
 
@@ -183,8 +161,12 @@ export class Music {
 
       await replyHandler.reply({ embeds: [emb] })
 
-      await queue.node.play(tracks.shift())
-      queue.addTrack(tracks)
+      if (playNext) {
+        tracks.reverse().forEach(t => queue.insertTrack(t))
+      } else {
+        await queue.node.play(tracks.shift())
+        queue.addTrack(tracks)
+      }
     } else if (searchResult?.tracks[0]) {
       const track = searchResult.tracks[0]
 
@@ -204,6 +186,33 @@ export class Music {
     } else {
       await replyHandler.reply(`❌ | Could not find **${query}**!`)
     }
+  }
+
+  @DualCommand({
+    aliases: ["pn"],
+    description: "Plays or adds a song/playlist as next to the queue",
+    argSplitter(command) {
+      return [command.argString]
+    }
+  })
+  @Guard(onVoiceChannel)
+  async playnext(
+    @SimpleCommandOption({
+      name: "query",
+      type: SimpleCommandOptionType.String
+    })
+    @SlashOption({
+      name: "query",
+      description: "song title",
+      type: ApplicationCommandOptionType.String,
+      required: true
+    })
+      query: string | undefined,
+      interactionOrMsg: CommandInteraction | SimpleCommandMessage
+  ) {
+    const replyHandler = getReplyHandler(interactionOrMsg)
+    if (!query) return await replyHandler.reply("Provide query")
+    return await this.play(query, interactionOrMsg, true)
   }
 
   @DualCommand({
