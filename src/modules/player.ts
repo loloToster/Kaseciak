@@ -1,12 +1,11 @@
 import { inject, singleton } from "tsyringe"
-import { Player as DiscordPlayer, PlayerSearchResult } from "discord-player"
+import { Player as DiscordPlayer } from "discord-player"
 import { Client } from "discordx"
 import { GuildMember, GuildResolvable, User } from "discord.js"
 
 import MusicController from "../utils/MusicController"
 import { StationName } from "../utils/radioStations"
-import ytMusicToTracks from "../utils/ytMusicToTracks"
-import { isValidUrl } from "../utils/isValidUrl"
+import { YoutubeMusicExtractor } from "../utils/YoutubeMusicExtractor"
 
 export interface CustomMetadata {
   radios: Array<{
@@ -48,6 +47,7 @@ export class Player extends DiscordPlayer {
       console.error(err)
     })
 
+    this.extractors.register(YoutubeMusicExtractor, {})
     this.extractors.loadDefault()
 
     if (process.env.SEARCH_PLATFORM) {
@@ -96,50 +96,5 @@ export class Player extends DiscordPlayer {
     }
 
     return false
-  }
-
-  private async searchBySpecificPlatform(
-    query: string,
-    platform: SearchPlatform,
-    options: PlatformSearchOptions
-  ) {
-    switch (platform) {
-      case "yt": {
-        const res = await this.search(query, options)
-
-        return {
-          tracks: res.tracks,
-          playlist: res.playlist ?? null
-        }
-      }
-
-      case "ytm": {
-        return await ytMusicToTracks(query, this, options.requestedBy)
-      }
-    }
-  }
-
-  async platformSearch(query: string, options: PlatformSearchOptions) {
-    let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
-
-    const platform = options?.platform ?? this.SEARCH_PLATFORM
-
-    if (platform !== DEFAULT_SEARCH_PLATFORM && !isValidUrl(query)) {
-      searchResult = await this.searchBySpecificPlatform(
-        query,
-        platform,
-        options
-      )
-    }
-
-    if (!searchResult.tracks.length) {
-      searchResult = await this.searchBySpecificPlatform(
-        query,
-        DEFAULT_SEARCH_PLATFORM,
-        options
-      )
-    }
-
-    return searchResult
   }
 }

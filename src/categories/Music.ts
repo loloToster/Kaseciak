@@ -13,25 +13,24 @@ import {
   SimpleCommandMessage,
   SimpleCommandOption,
   SimpleCommandOptionType,
+  SlashChoice,
   SlashOption
 } from "discordx"
 
 import { Category } from "@discordx/utilities"
 import { Pagination } from "@discordx/pagination"
-import { PlayerSearchResult } from "discord-player"
 import { lyricsExtractor } from "@discord-player/extractor"
 
 import { injectable } from "tsyringe"
 
-import { isValidUrl } from "../utils/isValidUrl"
 import getColor from "../utils/getColor"
 import DualCommand, {
   getMember,
   getReplyHandler,
   getUser
 } from "../utils/DualCommand"
-import ytMusicToTracks from "../utils/ytMusicToTracks"
 import MusicController from "../utils/MusicController"
+import { YoutubeMusicExtractor } from "../utils/YoutubeMusicExtractor"
 
 import isGuild from "../guards/isGuild"
 import onVoiceChannel from "../guards/onVoiceChannel"
@@ -41,6 +40,18 @@ import { Database } from "../modules/database"
 
 const lyricsClient = lyricsExtractor()
 
+const supportedQuerySearchEngines = {
+  "youtube music": `ext:${YoutubeMusicExtractor.identifier}`,
+  youtube: "com.discord-player.youtubeextractor",
+  spotify: "com.discord-player.spotifyextractor"
+} as const
+
+type SupportedQuerySearchEngine = keyof typeof supportedQuerySearchEngines
+
+const supportedQuerySearchEnginesNames = Object.keys(
+  supportedQuerySearchEngines
+)
+
 @Discord()
 @injectable()
 @Category("Music")
@@ -48,58 +59,67 @@ export class Music {
   constructor(private player: Player, private db: Database) {}
 
   private async search(user: User, query: string) {
-    let searchResult: PlayerSearchResult = { tracks: [], playlist: null }
-
     const users = await this.db.getData("/users")
-    const useYTmusic = users[user.id] ? users[user.id].useYTmusic : true
+    const engine: SupportedQuerySearchEngine = users[user.id].engine
 
-    if (!isValidUrl(query) && useYTmusic)
-      searchResult = await ytMusicToTracks(query, this.player, user)
-
-    if (!searchResult.tracks?.length) {
-      const res = await this.player.search(query, {
-        requestedBy: user
+    if (engine) {
+      const result = await this.player.search(query, {
+        requestedBy: user,
+        blockExtractors: this.player.extractors.store
+          .array()
+          .map(e => e.identifier)
+          .filter(id => id !== supportedQuerySearchEngines[engine])
       })
 
-      searchResult.tracks = res.tracks
-      searchResult.playlist = res.playlist ?? null
+      if (result.hasTracks() || result.hasPlaylist()) return result
     }
 
-    return searchResult
+    return await this.player.search(query, {
+      requestedBy: user
+    })
   }
 
   @DualCommand({
-    name: "use-yt-music",
-    description: "Choose wheter you want to use yt music to search for songs"
+    description: "Sets or shows engine to use when querying by non-url value"
   })
-  async useYTMusic(
+  async engine(
     @SimpleCommandOption({
-      name: "choice",
-      type: SimpleCommandOptionType.Boolean
+      name: "engine",
+      type: SimpleCommandOptionType.String
     })
+    @SlashChoice(...supportedQuerySearchEnginesNames)
     @SlashOption({
-      name: "choice",
-      description: "your choice",
-      type: ApplicationCommandOptionType.Boolean,
-      required: true
+      name: "engine",
+      description: "name of the supported engine",
+      type: ApplicationCommandOptionType.String,
+      required: false
     })
-      choice: boolean | undefined,
+      engine: SupportedQuerySearchEngine | undefined,
       interactionOrMsg: CommandInteraction | SimpleCommandMessage
   ) {
     const replyHandler = getReplyHandler(interactionOrMsg)
     const user = getUser(interactionOrMsg)
 
-    choice = choice ?? true
+    if (!engine) {
+      const users = await this.db.getData("/users")
+      const engine: string | undefined = users[user.id].engine
+
+      return await replyHandler.reply(
+        engine
+          ? `Your engine is set to: ${engine}`
+          : "You are using default engine"
+      )
+    }
+
+    if (!supportedQuerySearchEnginesNames.includes(engine)) {
+      return await replyHandler.reply(`I don't now engine with name: ${engine}`)
+    }
 
     await this.db.push("/users", {
-      [user.id]: { useYTmusic: choice }
+      [user.id]: { engine }
     })
 
-    await replyHandler.reply(
-      choice
-        ? "From now you will use YT music to search for songs"
-        : "From now you will not use YT music to search for songs"
-    )
+    await replyHandler.reply(`Successfully set engine to: ${engine}`)
   }
 
   @DualCommand({
@@ -164,7 +184,8 @@ export class Music {
       if (playNext) {
         tracks.reverse().forEach(t => queue.insertTrack(t))
       } else {
-        await queue.node.play(tracks.shift())
+        const track = tracks.shift()
+        if (track) await queue.play(track)
         queue.addTrack(tracks)
       }
     } else if (searchResult?.tracks[0]) {
@@ -182,10 +203,12 @@ export class Music {
       await replyHandler.reply({ embeds: [emb] })
 
       if (playNext) queue.insertTrack(track)
-      else await queue.node.play(track)
+      else await queue.play(track)
     } else {
       await replyHandler.reply(`❌ | Could not find **${query}**!`)
     }
+
+    if (!queue.isPlaying() && !queue.node.isPaused()) await queue.node.play()
   }
 
   @DualCommand({
