@@ -60,7 +60,7 @@ export class Music {
 
   private async search(user: User, query: string) {
     const users = await this.db.getData("/users")
-    const engine: SupportedQuerySearchEngine = users[user.id].engine
+    const engine: SupportedQuerySearchEngine = users[user.id]?.engine
 
     if (engine) {
       const result = await this.player.search(query, {
@@ -102,7 +102,7 @@ export class Music {
 
     if (!engine) {
       const users = await this.db.getData("/users")
-      const engine: string | undefined = users[user.id].engine
+      const engine: string | undefined = users[user.id]?.engine
 
       return await replyHandler.reply(
         engine
@@ -160,6 +160,12 @@ export class Music {
       return
     }
 
+    if (interactionOrMsg instanceof CommandInteraction) {
+      await interactionOrMsg.deferReply()
+    }
+
+    let emb: EmbedBuilder | null = new EmbedBuilder()
+
     const searchResult = await this.search(getUser(interactionOrMsg), query)
 
     const playlist = searchResult.playlist
@@ -167,7 +173,7 @@ export class Music {
     if (playlist) {
       const tracks = playlist.tracks
 
-      const emb = new EmbedBuilder()
+      emb = new EmbedBuilder()
         .setTitle(
           `Adding **${tracks.length}** songs from **${playlist.title}**`
         )
@@ -179,8 +185,6 @@ export class Music {
       const color = await getColor(playlist.thumbnail, 500, playlist.id)
       if (color) emb.setColor(color as HexColorString)
 
-      await replyHandler.reply({ embeds: [emb] })
-
       if (playNext) {
         tracks.reverse().forEach(t => queue.insertTrack(t))
       } else {
@@ -191,7 +195,7 @@ export class Music {
     } else if (searchResult?.tracks[0]) {
       const track = searchResult.tracks[0]
 
-      const emb = new EmbedBuilder()
+      emb = new EmbedBuilder()
         .setTitle(`Adding **${track.title}**`)
         .setURL(track.url)
         .setThumbnail(track.thumbnail)
@@ -200,12 +204,20 @@ export class Music {
       const color = await getColor(track.thumbnail, 500, track.id)
       if (color) emb.setColor(color as HexColorString)
 
-      await replyHandler.reply({ embeds: [emb] })
-
       if (playNext) queue.insertTrack(track)
       else await queue.play(track)
     } else {
-      await replyHandler.reply(`❌ | Could not find **${query}**!`)
+      emb = null
+    }
+
+    const msgPayload = emb
+      ? { embeds: [emb] }
+      : `❌ | Could not find **${query}**!`
+
+    if (interactionOrMsg instanceof CommandInteraction) {
+      await interactionOrMsg.editReply(msgPayload)
+    } else {
+      await replyHandler.reply(msgPayload)
     }
 
     if (!queue.isPlaying() && !queue.node.isPaused()) await queue.node.play()
