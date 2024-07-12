@@ -29,7 +29,7 @@ export class Player extends DiscordPlayer {
   SEARCH_PLATFORM: SearchPlatform
 
   constructor(@inject("client") client: Client) {
-    process.env.DP_FORCE_YTDL_MOD = "@distube/ytdl-core"
+    process.env.DP_FORCE_YTDL_MOD = "ytdl-core"
     // custom env variable made with patch-package used in @discord-player/opus
     process.env.OPUS_PACKAGE = "@evan/opus"
 
