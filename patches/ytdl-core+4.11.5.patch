@@ -1,13 +1,32 @@
 diff --git a/node_modules/ytdl-core/lib/sig.js b/node_modules/ytdl-core/lib/sig.js
-index eb7bfaa..4e3db4d 100644
+index eb7bfaa..30368d6 100644
 --- a/node_modules/ytdl-core/lib/sig.js
 +++ b/node_modules/ytdl-core/lib/sig.js
-@@ -55,7 +55,7 @@ exports.extractFunctions = body => {
+@@ -55,16 +55,17 @@ exports.extractFunctions = body => {
      }
    };
    const extractNCode = () => {
 -    let functionName = utils.between(body, `&&(b=a.get("n"))&&(b=`, `(b)`);
-+    let functionName = utils.between(body, `&&(b=a.get("n"))&&(b=`, `(b)`) || utils.between(body, `&&(b=String.fromCharCode(110),c=a.get(b))&&(c=`, `(c)`);
-     if (functionName.includes('[')) functionName = utils.between(body, `var ${functionName.split('[')[0]}=[`, `]`);
-     if (functionName && functionName.length) {
-       const functionStart = `${functionName}=function(a)`;
+-    if (functionName.includes('[')) functionName = utils.between(body, `var ${functionName.split('[')[0]}=[`, `]`);
+-    if (functionName && functionName.length) {
+-      const functionStart = `${functionName}=function(a)`;
+-      const ndx = body.indexOf(functionStart);
+-      if (ndx >= 0) {
+-        const subBody = body.slice(ndx + functionStart.length);
+-        const functionBody = `var ${functionStart}${utils.cutAfterJS(subBody)};${functionName}(ncode);`;
+-        functions.push(functionBody);
+-      }
++    const N_TRANSFORM_REGEXP = 'function\\(\\s*(\\w+)\\s*\\)\\s*\\{' +
++      'var\\s*(\\w+)=(?:\\1\\.split\\(""\\)|String\\.prototype\\.split\\.call\\(\\1,""\\)),' +
++      '\\s*(\\w+)=(\\[.*?]);\\s*\\3\\[\\d+]' +
++      '(.*?try)(\\{.*?})catch\\(\\s*(\\w+)\\s*\\)\\s*\\' +
++      '{\\s*return"enhanced_except_([A-z0-9-]+)"\\s*\\+\\s*\\1\\s*}' +
++      '\\s*return\\s*(\\2\\.join\\(""\\)|Array\\.prototype\\.join\\.call\\(\\2,""\\))};';
++
++    let mo = body.match(new RegExp(N_TRANSFORM_REGEXP, 's'));
++    if (mo) {
++      let fnbody = mo[0];
++      functions.push('var nxx=' + fnbody + 'nxx(ncode);');
+     }
+   };
+   extractDecipher();
