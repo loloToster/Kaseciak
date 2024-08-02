@@ -180,7 +180,7 @@ export default class MusicController<M = unknown> {
     // remove all listeners
     this.listeners.forEach(([ev, l]) => {
       this.player.removeListener(ev as keyof PlayerEvents, l)
-      this.player.client.removeListener(ev, l)
+      this.player.client.off(ev, l)
     })
 
     await this.msgLock.acquire("", async () => {
@@ -204,7 +204,7 @@ export default class MusicController<M = unknown> {
 
       emb
         .setTitle(`**${track.title}**`)
-        .setURL(track.url)
+        .setURL(track.url.startsWith("http") ? track.url : null)
         .setThumbnail(track.thumbnail)
         .addFields({
           name: track.author || "\u200b",
